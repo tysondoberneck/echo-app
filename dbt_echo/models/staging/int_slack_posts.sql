@@ -8,6 +8,8 @@
 }}
 
 select
+  event_text,
+  SNOWFLAKE.CORTEX.SENTIMENT(event_text) as sentiment_score,
   id,
   event_time,
   api_app_id,
@@ -22,7 +24,6 @@ select
   event_channel,
   event_channel_type,
   event_client_msg_id,
-  event_text,
   event_type,
   event_user,
   event_context,
