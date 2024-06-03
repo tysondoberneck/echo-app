@@ -1,3 +1,5 @@
 .env
 node_modules/
 snowflake.log
+dbt_venv
+dbt.log
