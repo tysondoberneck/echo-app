@@ -46,7 +46,8 @@ select
   event:is_ext_shared_channel as is_ext_shared_channel,
   event:team_id as team_id,
   event:token as token,
-  event:type as type
+  event:type as type,
+  event:event.bot_id as bot_id
 from raw_events
 
 {% if is_incremental() %}

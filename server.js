@@ -2,13 +2,68 @@ require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const { WebClient } = require('@slack/web-api');
+const axios = require('axios');
 const { storeRawEventInSnowflake } = require('./snowflake');
 
 const app = express();
 app.use(bodyParser.json());
 
-const slackToken = process.env.SLACK_ACCESS_TOKEN;
-const web = new WebClient(slackToken);
+let slackToken = process.env.SLACK_ACCESS_TOKEN;
+let web = new WebClient(slackToken);
+
+async function refreshAccessToken() {
+  try {
+    const response = await axios.post('https://slack.com/api/oauth.v2.access', null, {
+      params: {
+        client_id: process.env.CLIENT_ID,
+        client_secret: process.env.CLIENT_SECRET,
+        refresh_token: process.env.SLACK_REFRESH_TOKEN,
+        grant_type: 'refresh_token'
+      }
+    });
+
+    if (response.data.ok) {
+      process.env.SLACK_ACCESS_TOKEN = response.data.access_token;
+      process.env.SLACK_REFRESH_TOKEN = response.data.refresh_token;
+      slackToken = process.env.SLACK_ACCESS_TOKEN;
+      web = new WebClient(slackToken);
+
+      console.log('Tokens refreshed successfully');
+    } else {
+      console.error('Error refreshing tokens:', response.data.error);
+    }
+  } catch (error) {
+    console.error('Error refreshing tokens:', error);
+  }
+}
+
+async function postMessageToChannel(text) {
+  try {
+    await web.chat.postMessage({
+      channel: process.env.SLACK_CHANNEL_ID,
+      text,
+      token: slackToken,
+      username: 'Anonymous',
+    });
+    console.log('Message posted anonymously to #your-voice');
+  } catch (error) {
+    if (error.code === 'slack_webapi_platform_error' && error.data.error === 'token_expired') {
+      console.log('Access token expired. Refreshing token...');
+      await refreshAccessToken();
+
+      // Retry posting the message with the new token
+      await web.chat.postMessage({
+        channel: process.env.SLACK_CHANNEL_ID,
+        text,
+        token: slackToken,
+        username: 'Anonymous',
+      });
+      console.log('Message posted anonymously to #your-voice after refreshing token');
+    } else {
+      console.error('Error posting message:', error);
+    }
+  }
+}
 
 app.post('/slack/events', async (req, res) => {
   console.log('Received a request from Slack:', JSON.stringify(req.body, null, 2));
@@ -21,9 +76,17 @@ app.post('/slack/events', async (req, res) => {
   const event = req.body.event;
   if (event) {
     console.log('Event received:', JSON.stringify(event, null, 2));
-    if (event.type === 'message' && event.channel === process.env.SLACK_CHANNEL_ID) {
-      console.log('Message received:', event.text);
-      await storeRawEventInSnowflake(req.body);
+    if (event.type === 'message') {
+      if (event.channel === process.env.SLACK_CHANNEL_ID) {
+        console.log('Message received in #your-voice:', event.text);
+        await storeRawEventInSnowflake(req.body);
+      } else if (event.channel_type === 'im') {
+        // Handle direct messages to the bot
+        console.log('Direct message received:', event.text);
+        await postMessageToChannel(event.text);
+      } else {
+        console.log('Event type or channel mismatch:', event);
+      }
     } else if (event.type === 'reaction_added') {
       console.log('Reaction added:', event.reaction);
       await storeRawEventInSnowflake(req.body);
@@ -55,6 +118,9 @@ app.get('/oauth/callback', async (req, res) => {
     process.env.SLACK_REFRESH_TOKEN = result.refresh_token;
     process.env.SLACK_BOT_USER_ID = result.bot_user_id;
     process.env.SLACK_TEAM_ID = result.team.id;
+
+    slackToken = process.env.SLACK_ACCESS_TOKEN;
+    web = new WebClient(slackToken);
 
     res.send('OAuth authorization successful!');
   } catch (error) {

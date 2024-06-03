@@ -1,3 +1,5 @@
+-- models/intermediate/int_slack_posts.sql
+
 {{
   config(
     materialized='incremental',
@@ -28,7 +30,11 @@ select
   is_ext_shared_channel,
   team_id,
   token,
-  type
+  type,
+  case 
+    when bot_id is not null then true
+    else false
+  end as is_bot_post
 from {{ ref('base_slack_events') }}
 where event_type = 'message'
   and event_parent_user_id is null
