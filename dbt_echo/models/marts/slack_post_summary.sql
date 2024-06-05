@@ -36,7 +36,8 @@ combined_feedback as (
     end as sentiment_category,
     avg(sentiment_score) as avg_sentiment_score,
     array_agg(weighted_text) as feedback_texts,
-    array_agg(concat(post_number, '. ', weighted_text)) as numbered_posts,
+    array_agg(concat(post_number, '.
+     ', weighted_text)) as numbered_posts,
     count(*) as number_of_posts
   from numbered_posts
   group by sentiment_category

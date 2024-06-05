@@ -3,14 +3,34 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const { WebClient } = require('@slack/web-api');
 const axios = require('axios');
-const { storeRawEventInSnowflake } = require('./snowflake');
+const { storeRawEventInSnowflake, getTokensFromSnowflake, updateTokensInSnowflake } = require('./snowflake'); // Import necessary functions
 
 const app = express();
 app.use(bodyParser.json());
 
-let slackToken = process.env.SLACK_ACCESS_TOKEN;
-let refreshToken = process.env.SLACK_REFRESH_TOKEN;
-let web = new WebClient(slackToken);
+let slackToken;
+let refreshToken;
+let web;
+
+async function initializeTokens() {
+  try {
+    const tokens = await getTokensFromSnowflake();
+    slackToken = tokens.ACCESS_TOKEN;
+    refreshToken = tokens.REFRESH_TOKEN;
+    web = new WebClient(slackToken);
+    console.log('Tokens loaded from Snowflake');
+  } catch (error) {
+    console.error('Failed to load tokens from Snowflake:', error);
+  }
+}
+
+async function ensureWebClientInitialized() {
+  if (!web) {
+    await initializeTokens();
+  }
+}
+
+initializeTokens();
 
 async function refreshAccessToken() {
   try {
@@ -24,10 +44,13 @@ async function refreshAccessToken() {
     });
 
     if (response.data.ok) {
-      process.env.SLACK_ACCESS_TOKEN = response.data.access_token;
-      process.env.SLACK_REFRESH_TOKEN = response.data.refresh_token;
-      slackToken = process.env.SLACK_ACCESS_TOKEN;
-      refreshToken = process.env.SLACK_REFRESH_TOKEN;
+      const newAccessToken = response.data.access_token;
+      const newRefreshToken = response.data.refresh_token;
+
+      await updateTokensInSnowflake(newAccessToken, newRefreshToken);
+
+      slackToken = newAccessToken;
+      refreshToken = newRefreshToken;
       web = new WebClient(slackToken);
 
       console.log('Tokens refreshed successfully');
@@ -41,6 +64,7 @@ async function refreshAccessToken() {
 
 async function postMessageToChannel(text) {
   try {
+    await ensureWebClientInitialized();
     await web.chat.postMessage({
       channel: process.env.SLACK_CHANNEL_ID,
       text,
@@ -52,7 +76,6 @@ async function postMessageToChannel(text) {
       console.log('Access token expired. Refreshing token...');
       await refreshAccessToken();
 
-      // Retry posting the message with the new token
       await web.chat.postMessage({
         channel: process.env.SLACK_CHANNEL_ID,
         text,
@@ -79,9 +102,8 @@ app.post('/slack/events', async (req, res) => {
     if (event.type === 'message') {
       if (event.channel === process.env.SLACK_CHANNEL_ID) {
         console.log('Message received in #your-voice:', event.text);
-        await storeRawEventInSnowflake(req.body);
+        await storeRawEventInSnowflake(req.body).catch(error => console.error(error));
       } else if (event.channel_type === 'im') {
-        // Handle direct messages to the bot
         console.log('Direct message received:', event.text);
         await postMessageToChannel(event.text);
       } else {
@@ -89,7 +111,7 @@ app.post('/slack/events', async (req, res) => {
       }
     } else if (event.type === 'reaction_added') {
       console.log('Reaction added:', event.reaction);
-      await storeRawEventInSnowflake(req.body);
+      await storeRawEventInSnowflake(req.body).catch(error => console.error(error));
     } else {
       console.log('Event type or channel mismatch:', event);
     }
@@ -113,14 +135,10 @@ app.get('/oauth/callback', async (req, res) => {
 
     console.log('OAuth Access Result:', result);
 
-    // Update environment variables or secure storage with new tokens
-    process.env.SLACK_ACCESS_TOKEN = result.access_token;
-    process.env.SLACK_REFRESH_TOKEN = result.refresh_token;
-    process.env.SLACK_BOT_USER_ID = result.bot_user_id;
-    process.env.SLACK_TEAM_ID = result.team.id;
+    await updateTokensInSnowflake(result.access_token, result.refresh_token);
 
-    slackToken = process.env.SLACK_ACCESS_TOKEN;
-    refreshToken = process.env.SLACK_REFRESH_TOKEN;
+    slackToken = result.access_token;
+    refreshToken = result.refresh_token;
     web = new WebClient(slackToken);
 
     res.send('OAuth authorization successful!');
