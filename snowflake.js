@@ -117,7 +117,7 @@ async function getSummarizedData() {
       detailed_summary,
       all_numbered_posts,
       number_of_posts
-    FROM ECHO_DB.ECHO_SCHEMA.SLACK_POST_SUMMARY;  -- Replace with your actual table name
+    FROM ECHO_DB.ECHO_SCHEMA.SLACK_POST_SUMMARY;
   `;
 
   return new Promise((resolve, reject) => {
@@ -134,9 +134,36 @@ async function getSummarizedData() {
   });
 }
 
+// Function to get sentiment data from Snowflake
+async function getSentimentData() {
+  const query = `
+    SELECT 
+      EVENT_TIME, 
+      SENTIMENT_SCORE 
+    FROM 
+      ECHO_DB.ECHO_SCHEMA.INT_SLACK_POSTS 
+    ORDER BY 
+      EVENT_TIME ASC
+  `;
+
+  return new Promise((resolve, reject) => {
+    connection.execute({
+      sqlText: query,
+      complete: (err, stmt, rows) => {
+        if (err) {
+          reject('Error fetching sentiment data from Snowflake: ' + err);
+        } else {
+          resolve(rows);
+        }
+      }
+    });
+  });
+}
+
 module.exports = {
   storeRawEventInSnowflake,
   getTokensFromSnowflake,
   updateTokensInSnowflake,
-  getSummarizedData // Export the new function
+  getSummarizedData,
+  getSentimentData
 };
