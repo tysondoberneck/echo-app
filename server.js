@@ -3,10 +3,12 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const { WebClient } = require('@slack/web-api');
 const axios = require('axios');
-const { storeRawEventInSnowflake, getTokensFromSnowflake, updateTokensInSnowflake } = require('./snowflake'); // Import necessary functions
+const cors = require('cors'); // Import CORS
+const { storeRawEventInSnowflake, getTokensFromSnowflake, updateTokensInSnowflake, getSummarizedData } = require('./snowflake'); // Import necessary functions
 
 const app = express();
 app.use(bodyParser.json());
+app.use(cors()); // Enable CORS
 
 let slackToken;
 let refreshToken;
@@ -120,6 +122,16 @@ app.post('/slack/events', async (req, res) => {
   }
 
   res.status(200).send('Event received');
+});
+
+app.get('/api/feedback', async (req, res) => {
+  try {
+    const data = await getSummarizedData();
+    res.status(200).json(data);
+  } catch (error) {
+    console.error('Error fetching summarized data:', error);
+    res.status(500).send('Error fetching summarized data');
+  }
 });
 
 app.get('/oauth/callback', async (req, res) => {

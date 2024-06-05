@@ -107,8 +107,36 @@ async function updateTokensInSnowflake(accessToken, refreshToken) {
   });
 }
 
+// Function to get summarized data from Snowflake
+async function getSummarizedData() {
+  const query = `
+    SELECT
+      sentiment_category,
+      avg_sentiment_score,
+      summary_text,
+      detailed_summary,
+      all_numbered_posts,
+      number_of_posts
+    FROM ECHO_DB.ECHO_SCHEMA.SLACK_POST_SUMMARY;  -- Replace with your actual table name
+  `;
+
+  return new Promise((resolve, reject) => {
+    connection.execute({
+      sqlText: query,
+      complete: (err, stmt, rows) => {
+        if (err) {
+          reject('Error fetching summarized data from Snowflake: ' + err);
+        } else {
+          resolve(rows);
+        }
+      }
+    });
+  });
+}
+
 module.exports = {
   storeRawEventInSnowflake,
   getTokensFromSnowflake,
-  updateTokensInSnowflake
+  updateTokensInSnowflake,
+  getSummarizedData // Export the new function
 };
