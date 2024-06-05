@@ -9,6 +9,7 @@ const app = express();
 app.use(bodyParser.json());
 
 let slackToken = process.env.SLACK_ACCESS_TOKEN;
+let refreshToken = process.env.SLACK_REFRESH_TOKEN;
 let web = new WebClient(slackToken);
 
 async function refreshAccessToken() {
@@ -17,8 +18,8 @@ async function refreshAccessToken() {
       params: {
         client_id: process.env.CLIENT_ID,
         client_secret: process.env.CLIENT_SECRET,
-        refresh_token: process.env.SLACK_REFRESH_TOKEN,
-        grant_type: 'refresh_token'
+        grant_type: 'refresh_token',
+        refresh_token: refreshToken
       }
     });
 
@@ -26,6 +27,7 @@ async function refreshAccessToken() {
       process.env.SLACK_ACCESS_TOKEN = response.data.access_token;
       process.env.SLACK_REFRESH_TOKEN = response.data.refresh_token;
       slackToken = process.env.SLACK_ACCESS_TOKEN;
+      refreshToken = process.env.SLACK_REFRESH_TOKEN;
       web = new WebClient(slackToken);
 
       console.log('Tokens refreshed successfully');
@@ -42,7 +44,6 @@ async function postMessageToChannel(text) {
     await web.chat.postMessage({
       channel: process.env.SLACK_CHANNEL_ID,
       text,
-      token: slackToken,
       username: 'Anonymous',
     });
     console.log('Message posted anonymously to #your-voice');
@@ -55,7 +56,6 @@ async function postMessageToChannel(text) {
       await web.chat.postMessage({
         channel: process.env.SLACK_CHANNEL_ID,
         text,
-        token: slackToken,
         username: 'Anonymous',
       });
       console.log('Message posted anonymously to #your-voice after refreshing token');
@@ -120,6 +120,7 @@ app.get('/oauth/callback', async (req, res) => {
     process.env.SLACK_TEAM_ID = result.team.id;
 
     slackToken = process.env.SLACK_ACCESS_TOKEN;
+    refreshToken = process.env.SLACK_REFRESH_TOKEN;
     web = new WebClient(slackToken);
 
     res.send('OAuth authorization successful!');
