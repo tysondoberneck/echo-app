@@ -160,10 +160,37 @@ async function getSentimentData() {
   });
 }
 
+// Function to get bot post counts from Snowflake
+async function getBotPostCounts() {
+  const query = `
+    SELECT 
+      IS_BOT_POST, 
+      COUNT(*) AS POST_COUNT 
+    FROM 
+      ECHO_DB.ECHO_SCHEMA.INT_SLACK_POSTS 
+    GROUP BY 
+      IS_BOT_POST
+  `;
+
+  return new Promise((resolve, reject) => {
+    connection.execute({
+      sqlText: query,
+      complete: (err, stmt, rows) => {
+        if (err) {
+          reject('Error fetching bot post counts from Snowflake: ' + err);
+        } else {
+          resolve(rows);
+        }
+      }
+    });
+  });
+}
+
 module.exports = {
   storeRawEventInSnowflake,
   getTokensFromSnowflake,
   updateTokensInSnowflake,
   getSummarizedData,
-  getSentimentData
+  getSentimentData,
+  getBotPostCounts
 };

@@ -4,7 +4,7 @@ const bodyParser = require('body-parser');
 const { WebClient } = require('@slack/web-api');
 const axios = require('axios');
 const cors = require('cors');
-const { storeRawEventInSnowflake, getTokensFromSnowflake, updateTokensInSnowflake, getSummarizedData, getSentimentData } = require('./snowflake');
+const { storeRawEventInSnowflake, getTokensFromSnowflake, updateTokensInSnowflake, getSummarizedData, getSentimentData, getBotPostCounts } = require('./snowflake');
 
 const app = express();
 app.use(bodyParser.json());
@@ -141,6 +141,16 @@ app.get('/api/sentiment', async (req, res) => {
   } catch (error) {
     console.error('Error fetching sentiment data:', error);
     res.status(500).send('Error fetching sentiment data');
+  }
+});
+
+app.get('/api/botpostcounts', async (req, res) => {
+  try {
+    const data = await getBotPostCounts();
+    res.status(200).json(data);
+  } catch (error) {
+    console.error('Error fetching bot post counts:', error);
+    res.status(500).send('Error fetching bot post counts');
   }
 });
 

@@ -1,7 +1,8 @@
 import React from 'react';
-import './App.css';  // Import the CSS file
+import './App.css';
 import FeedbackTable from './components/FeedbackTable';
 import SentimentLineChart from './components/SentimentLineChart';
+import AnonymousPieChart from './components/AnonymousPieChart';
 
 const App = () => {
   return (
@@ -11,6 +12,7 @@ const App = () => {
         <FeedbackTable />
         <div className="chart-container">
           <SentimentLineChart />
+          <AnonymousPieChart />
         </div>
       </div>
     </div>
