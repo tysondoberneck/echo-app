@@ -4,7 +4,9 @@ const bodyParser = require('body-parser');
 const { WebClient } = require('@slack/web-api');
 const axios = require('axios');
 const cors = require('cors');
-const { storeRawEventInSnowflake, getTokensFromSnowflake, updateTokensInSnowflake, getSummarizedData, getSentimentData, getBotPostCounts } = require('./snowflake');
+const { storeRawEventInSnowflake } = require('./snowflake/events');
+const { getTokensFromSnowflake, updateTokensInSnowflake } = require('./snowflake/tokens');
+const { getSummarizedData, getSentimentData, getBotPostCounts } = require('./snowflake/data');
 
 const app = express();
 app.use(bodyParser.json());
