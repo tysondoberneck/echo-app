@@ -76,3 +76,13 @@ th {
 .chart-container {
   width: 100%;
 }
+
+.pie-chart-container {
+  width: 50%;
+  margin: 0 auto;
+}
+
+.pie-chart-container canvas {
+  width: 100% !important;
+  height: auto !important;
+}

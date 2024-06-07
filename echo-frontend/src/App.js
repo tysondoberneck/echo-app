@@ -12,7 +12,9 @@ const App = () => {
         <FeedbackTable />
         <div className="chart-container">
           <SentimentLineChart />
-          <AnonymousPieChart />
+          <div className="pie-chart-container">
+            <AnonymousPieChart />
+          </div>
         </div>
       </div>
     </div>
