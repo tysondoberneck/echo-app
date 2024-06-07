@@ -47,14 +47,15 @@ select
   sentiment_category,
   avg_sentiment_score,
   SNOWFLAKE.CORTEX.SUMMARIZE(array_to_string(feedback_texts, ' ')) as summary_text,  -- Summarize using Cortex
-  SNOWFLAKE.CORTEX.COMPLETE(
-    'mistral-large',
-    CONCAT(
-      'Summarize the following ordered list of employee feedback for management to understand the most pressing concerns and overall sentiment. Consider the importance of each post based on the engagement (reactions and replies) it received, as indicated by the weight provided in parentheses: ',
-      array_to_string(numbered_posts, ' '),
-      '. The feedback includes comments on job satisfaction, workplace environment, management effectiveness, and suggestions for improvements. Provide a concise summary highlighting key points, common themes, and any specific issues repeatedly mentioned by employees. Posts with higher engagement, indicated by higher weights, should be considered more important.'
-    )
-  ) as detailed_summary,  -- Detailed summary using Cortex Complete
+SNOWFLAKE.CORTEX.COMPLETE(
+  'mistral-large',
+  CONCAT(
+    'Summarize the following ordered list of employee feedback into 5 bullet points for management to understand the most pressing concerns and overall sentiment. Consider the importance of each post based on the weight it received: ',
+    array_to_string(numbered_posts, ' '),
+    '. The feedback includes comments on job satisfaction, workplace environment, management effectiveness, and suggestions for improvements. Provide a concise summary highlighting key points, common themes, and any specific issues repeatedly mentioned by employees. Focus on the most pressing concerns based on weight levels. Do not mention the weight in your summary.'
+  )
+) as detailed_summary,  -- Detailed summary using Cortex Complete
+
   array_to_string(numbered_posts, ' ') as all_numbered_posts,
   number_of_posts
 from combined_feedback
