@@ -2,48 +2,62 @@ const { getWebClient, ensureWebClientInitialized } = require('./initializeTokens
 const { storeRawEventInSnowflake } = require('./snowflake/events');
 const { postMessageToChannel } = require('./messageHandler');
 
+const processedMessageIds = new Set();
+
 async function handleSlackEvents(req, res) {
-  console.log('Received a request from Slack:', JSON.stringify(req.body, null, 2));
-
-  if (req.body.type === 'url_verification') {
-    res.status(200).send(req.body.challenge);
-    return;
-  }
-
   const event = req.body.event;
   await ensureWebClientInitialized();
   const web = getWebClient();  // Get the WebClient instance
 
   if (event) {
-    console.log('Event received:', JSON.stringify(event, null, 2));
+    const timestamp = new Date().toISOString();
+    const messageId = event.client_msg_id || event.ts;
+
+    // Ignore messages from bots
+    if (event.bot_id) {
+      res.status(200).send('Message from bot, ignoring...');
+      return;
+    }
+
+    // Check for duplicate messages
+    if (processedMessageIds.has(messageId)) {
+      res.status(200).send('Duplicate message detected, ignoring...');
+      return;
+    }
+
+    // Add messageId to the set of processed IDs
+    processedMessageIds.add(messageId);
+
     if (event.type === 'message') {
       if (event.channel === process.env.SLACK_CHANNEL_ID) {
-        console.log('Message received in #your-voice:', event.text);
-        await storeRawEventInSnowflake(req.body).catch(error => console.error(error));
-      } else if (event.channel_type === 'im' && !event.bot_id) {
-        console.log('Direct message received:', event.text);
-        // Reply to the user
-        await web.chat.postMessage({
+        // Handle messages posted directly in #your-voice
+        console.log(`[${timestamp}] Message received in #your-voice: ${event.text}`);
+        await storeRawEventInSnowflake(req.body).catch(error => console.error('Error storing event in Snowflake:', error));
+      } else if (event.channel_type === 'im') {
+        // Handle direct messages
+        console.log(`[${timestamp}] Direct message received: ${event.text}`);
+        
+        // Reply to the user asynchronously
+        web.chat.postMessage({
           channel: event.channel,
           text: "Thanks for the feedback! I'll get that posted for you.",
           thread_ts: event.ts, // Reply in thread
-        });
+        }).catch(error => console.error('Error replying to user:', error));
+
         // Post the message to the channel
         await postMessageToChannel(event.text);
-      } else {
-        console.log('Event type or channel mismatch:', event);
+        // console.log(`[${timestamp}] Message posted anonymously to #your-voice: ${event.text} from eventHandler`); --commenting out becasue the same console.log is in messageHandler
+
+        // Store the original user message in Snowflake
+        await storeRawEventInSnowflake(req.body).catch(error => console.error('Error storing event in Snowflake:', error));
       }
     } else if (event.type === 'reaction_added') {
-      console.log('Reaction added:', event.reaction);
-      await storeRawEventInSnowflake(req.body).catch(error => console.error(error));
+      await storeRawEventInSnowflake(req.body).catch(error => console.error('Error storing event in Snowflake:', error));
+      console.log(`[${timestamp}] Reaction added: ${event.reaction}`);
     } else if (event.type === 'app_home_opened') {
-      console.log('App home opened by user:', event.user);
-      await sendWelcomeMessage(event.user);
-    } else {
-      console.log('Event type or channel mismatch:', event);
+      await sendWelcomeMessage(event.user).catch(error => console.error('Error sending welcome message:', error));
+      console.log(`[${timestamp}] App home opened by user: ${event.user}`);
     }
-  } else {
-    console.log('No event found in request:', req.body);
   }
 
   res.status(200).send('Event received');
@@ -65,7 +79,7 @@ Here's how you can use Echo Bot:
 
 Thank you for helping us improve!`,
     });
-    console.log('Welcome message sent to user:', userId);
+    console.log(`Welcome message sent to user: ${userId}`);
   } catch (error) {
     console.error('Error sending welcome message:', error);
   }

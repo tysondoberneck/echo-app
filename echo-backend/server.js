@@ -12,6 +12,9 @@ app.use(cors());
 
 initializeTokens();
 
+// Initialize the scheduler
+require('./scheduler');
+
 app.post('/slack/events', handleSlackEvents);
 
 app.get('/api/feedback', handleFeedback);
