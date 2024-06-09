@@ -25,7 +25,7 @@ async function postMessage(web, text) {
       username: 'Anonymous',
     });
     const timestamp = new Date().toISOString();
-    console.log(`[${timestamp}] Message posted anonymously to #your-voice: ${text}`);
+    // console.log(`[${timestamp}] Message posted anonymously to #your-voice: ${text}`);
   } catch (error) {
     throw error;
   }

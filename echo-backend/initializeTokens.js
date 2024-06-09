@@ -6,6 +6,7 @@ const { getTokensFromSnowflake, updateTokensInSnowflake } = require('./snowflake
 let slackToken;
 let refreshToken;
 let web;
+let botUserId;
 
 async function initializeTokens() {
   try {
@@ -13,7 +14,12 @@ async function initializeTokens() {
     slackToken = tokens.ACCESS_TOKEN;
     refreshToken = tokens.REFRESH_TOKEN;
     web = new WebClient(slackToken);
-    console.log('Tokens loaded from Snowflake');
+
+    // Fetch bot user ID
+    const authTestResponse = await web.auth.test();
+    botUserId = authTestResponse.user_id;
+
+    console.log('Tokens and bot user ID loaded from Snowflake');
   } catch (error) {
     console.error('Failed to load tokens from Snowflake:', error);
   }
@@ -46,7 +52,11 @@ async function refreshAccessToken() {
       refreshToken = newRefreshToken;
       web = new WebClient(slackToken);
 
-      console.log('Tokens refreshed successfully');
+      // Fetch bot user ID
+      const authTestResponse = await web.auth.test();
+      botUserId = authTestResponse.user_id;
+
+      console.log('Tokens and bot user ID refreshed successfully');
     } else {
       console.error('Error refreshing tokens:', response.data.error);
     }
@@ -60,4 +70,5 @@ module.exports = {
   ensureWebClientInitialized,
   refreshAccessToken,
   getWebClient: () => web,  // Export a function to get the WebClient
+  getBotUserId: () => botUserId  // Export a function to get the bot user ID
 };

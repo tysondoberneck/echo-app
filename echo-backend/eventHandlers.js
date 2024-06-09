@@ -1,18 +1,63 @@
-const { getWebClient, ensureWebClientInitialized } = require('./initializeTokens');
+const { getWebClient, ensureWebClientInitialized, getBotUserId } = require('./initializeTokens');
 const { storeRawEventInSnowflake } = require('./snowflake/events');
 const { postMessageToChannel } = require('./messageHandler');
+const async = require('async');
+
+let messageQueue = async.queue(async (task, callback) => {
+  const { event, userName, timestamp, web } = task;
+  
+  try {
+    // Reply to the user asynchronously
+    const responses = [
+      `Thanks for the feedback, ${userName}! I'll get that posted for you.`,
+      `${userName}, your feedback is appreciated! I'll make sure it gets posted.`,
+      `Got it, ${userName}! Your feedback will be posted.`,
+      `Thanks, ${userName}! I'll handle posting your feedback.`
+    ];
+    const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+    
+    await web.chat.postMessage({
+      channel: event.channel,
+      text: randomResponse,
+      thread_ts: event.ts, // Reply in thread
+    });
+
+    // Post the message to the channel
+    await postMessageToChannel(event.text);
+    console.log(`[${timestamp}] Message posted anonymously to #your-voice: ${event.text}`);
+
+    // Store the original user message in Snowflake
+    await storeRawEventInSnowflake(task.reqBody);
+  } catch (error) {
+    console.error('Error processing message:', error);
+  }
+
+  callback();
+}, 1);
+
+async function getUserName(userId) {
+  const web = getWebClient();
+  try {
+    await ensureWebClientInitialized();
+    const result = await web.users.info({ user: userId });
+    return result.user.profile.real_name || result.user.profile.display_name || 'there';
+  } catch (error) {
+    console.error('Error fetching user info:', error);
+    return 'there';
+  }
+}
 
 async function handleSlackEvents(req, res) {
   const event = req.body.event;
   await ensureWebClientInitialized();
   const web = getWebClient();  // Get the WebClient instance
+  const botUserId = await getBotUserId();  // Get the bot user ID
 
   if (event) {
     const timestamp = new Date().toISOString();
     if (event.type === 'message') {
       // Ignore messages from bots
-      if (event.bot_id) {
-        console.log(`[${timestamp}] Message from bot, ignoring...`);
+      if (event.user === botUserId) {
         res.status(200).send('Message from bot, ignoring...');
         return;
       }
@@ -23,21 +68,11 @@ async function handleSlackEvents(req, res) {
         await storeRawEventInSnowflake(req.body).catch(error => console.error('Error storing event in Snowflake:', error));
       } else if (event.channel_type === 'im') {
         // Handle direct messages
+        const userName = await getUserName(event.user);
         console.log(`[${timestamp}] Direct message received: ${event.text}`);
         
-        // Reply to the user asynchronously
-        web.chat.postMessage({
-          channel: event.channel,
-          text: "Thanks for the feedback! I'll get that posted for you.",
-          thread_ts: event.ts, // Reply in thread
-        }).catch(error => console.error('Error replying to user:', error));
-
-        // Post the message to the channel
-        await postMessageToChannel(event.text);
-        // console.log(`[${timestamp}] Message posted anonymously to #your-voice: ${event.text}`);
-
-        // Store the original user message in Snowflake
-        await storeRawEventInSnowflake(req.body).catch(error => console.error('Error storing event in Snowflake:', error));
+        // Add the message to the queue
+        messageQueue.push({ event, userName, timestamp, web, reqBody: req.body });
       }
     } else if (event.type === 'reaction_added') {
       await storeRawEventInSnowflake(req.body).catch(error => console.error('Error storing event in Snowflake:', error));
