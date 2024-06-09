@@ -5,7 +5,7 @@ const async = require('async');
 
 // Create a queue for handling messages
 let messageQueue = async.queue(async (task, callback) => {
-  const { event, userName, timestamp, web } = task;
+  const { event, userName, timestamp, web, team_id } = task;
   
   try {
     // Reply to the user asynchronously
@@ -44,7 +44,7 @@ let messageQueue = async.queue(async (task, callback) => {
     console.log(`[${timestamp}] Message posted anonymously to #your-voice: ${event.text}`);
 
     // Store the original user message in Snowflake
-    await storeRawEventInSnowflake(task.reqBody);
+    await storeRawEventInSnowflake({ ...task.reqBody, team_id });
   } catch (error) {
     console.error('Error processing message:', error);
   }
@@ -84,17 +84,17 @@ async function handleSlackEvents(req, res) {
       if (event.channel === process.env.SLACK_CHANNEL_ID) {
         // Handle messages posted directly in #your-voice
         console.log(`[${timestamp}] Message received in #your-voice: ${event.text}`);
-        await storeRawEventInSnowflake(req.body).catch(error => console.error('Error storing event in Snowflake:', error));
+        await storeRawEventInSnowflake({ ...req.body, team_id: event.team }).catch(error => console.error('Error storing event in Snowflake:', error));
       } else if (event.channel_type === 'im') {
         // Handle direct messages
         const userName = await getUserName(event.user);
         console.log(`[${timestamp}] Direct message received: ${event.text}`);
         
         // Add the message to the queue
-        messageQueue.push({ event, userName, timestamp, web, reqBody: req.body });
+        messageQueue.push({ event, userName, timestamp, web, reqBody: req.body, team_id: event.team });
       }
     } else if (event.type === 'reaction_added') {
-      await storeRawEventInSnowflake(req.body).catch(error => console.error('Error storing event in Snowflake:', error));
+      await storeRawEventInSnowflake({ ...req.body, team_id: event.team }).catch(error => console.error('Error storing event in Snowflake:', error));
       console.log(`[${timestamp}] Reaction added: ${event.reaction}`);
     } else if (event.type === 'app_home_opened') {
       await sendWelcomeMessage(event.user).catch(error => console.error('Error sending welcome message:', error));
