@@ -1,7 +1,7 @@
 const cron = require('node-cron');
 const { getWebClient, ensureWebClientInitialized } = require('./initializeTokens');
 const { getAllUsersInChannel } = require('./slackUtils');
-const { getWeeklySummary } = require('./snowflake/weeklyFeedbackSummary');
+const { getWeeklySummary, getWeeklyOpenEndedQuestion } = require('./snowflake/weeklyFeedbackSummary');
 
 // Function to send weekly summary
 async function sendWeeklySummary() {
@@ -37,10 +37,34 @@ ${s.SUMMARY_TEXT}
   }
 }
 
-// Schedule task to run every Monday at 9 AM
-cron.schedule('0 9 * * 1', () => {
+// Function to post weekly open-ended question
+async function postWeeklyOpenEndedQuestion() {
+  const web = getWebClient();  // Get the WebClient instance
+  try {
+    await ensureWebClientInitialized();
+    const question = await getWeeklyOpenEndedQuestion();
+    
+    await web.chat.postMessage({
+      channel: process.env.SLACK_CHANNEL_ID,
+      text: `Here's an open-ended question based on last week's feedback:\n\n${question}`,
+    });
+    
+    console.log('Open-ended question posted to #your-voice');
+  } catch (error) {
+    console.error('Error posting open-ended question:', error);
+  }
+}
+
+// Schedule task to run every Friday at 9 AM
+cron.schedule('0 9 * * 5', () => {
   console.log('Running scheduled task: Sending weekly summary');
   sendWeeklySummary();
 });
 
-module.exports = { sendWeeklySummary };
+// Schedule task to run every Tuesday at 9 AM
+cron.schedule('0 9 * * 2', () => {
+  console.log('Running scheduled task: Posting open-ended question');
+  postWeeklyOpenEndedQuestion();
+});
+
+module.exports = { sendWeeklySummary, postWeeklyOpenEndedQuestion };
