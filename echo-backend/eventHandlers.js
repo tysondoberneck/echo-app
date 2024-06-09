@@ -2,8 +2,6 @@ const { getWebClient, ensureWebClientInitialized } = require('./initializeTokens
 const { storeRawEventInSnowflake } = require('./snowflake/events');
 const { postMessageToChannel } = require('./messageHandler');
 
-const processedMessageIds = new Set();
-
 async function handleSlackEvents(req, res) {
   const event = req.body.event;
   await ensureWebClientInitialized();
@@ -11,24 +9,14 @@ async function handleSlackEvents(req, res) {
 
   if (event) {
     const timestamp = new Date().toISOString();
-    const messageId = event.client_msg_id || event.ts;
-
-    // Ignore messages from bots
-    if (event.bot_id) {
-      res.status(200).send('Message from bot, ignoring...');
-      return;
-    }
-
-    // Check for duplicate messages
-    if (processedMessageIds.has(messageId)) {
-      res.status(200).send('Duplicate message detected, ignoring...');
-      return;
-    }
-
-    // Add messageId to the set of processed IDs
-    processedMessageIds.add(messageId);
-
     if (event.type === 'message') {
+      // Ignore messages from bots
+      if (event.bot_id) {
+        console.log(`[${timestamp}] Message from bot, ignoring...`);
+        res.status(200).send('Message from bot, ignoring...');
+        return;
+      }
+
       if (event.channel === process.env.SLACK_CHANNEL_ID) {
         // Handle messages posted directly in #your-voice
         console.log(`[${timestamp}] Message received in #your-voice: ${event.text}`);
@@ -46,7 +34,7 @@ async function handleSlackEvents(req, res) {
 
         // Post the message to the channel
         await postMessageToChannel(event.text);
-        // console.log(`[${timestamp}] Message posted anonymously to #your-voice: ${event.text} from eventHandler`); --commenting out becasue the same console.log is in messageHandler
+        // console.log(`[${timestamp}] Message posted anonymously to #your-voice: ${event.text}`);
 
         // Store the original user message in Snowflake
         await storeRawEventInSnowflake(req.body).catch(error => console.error('Error storing event in Snowflake:', error));
