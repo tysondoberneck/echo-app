@@ -9,11 +9,27 @@ let messageQueue = async.queue(async (task, callback) => {
   try {
     // Reply to the user asynchronously
     const responses = [
-      `Thanks for the feedback, ${userName}! I'll get that posted for you.`,
-      `${userName}, your feedback is appreciated! I'll make sure it gets posted.`,
-      `Got it, ${userName}! Your feedback will be posted.`,
-      `Thanks, ${userName}! I'll handle posting your feedback.`
-    ];
+        `Thanks for the feedback, ${userName}! I'll get that posted for you.`,
+        `${userName}, your feedback is appreciated! I'll make sure it gets posted.`,
+        `Got it, ${userName}! Your feedback will be posted.`,
+        `Thanks, ${userName}! I'll handle posting your feedback.`,
+        `Beep Boop🤖, ${userName}! Consider it shared.`,
+        `Your thoughts are on their way to the team, ${userName}!`,
+        `Feedback received, ${userName}! Posting it now.`,
+        `Thanks a ton, ${userName}! Your feedback is heading to the channel.`,
+        `You're amazing, ${userName}! Your feedback is being posted.`,
+        `Superb, ${userName}! I've posted your feedback.`,
+        `Thanks for sharing, ${userName}! It's now live.`,
+        `Got your feedback, ${userName}! Sending it out.`,
+        `Thanks for speaking up, ${userName}! Your feedback is posted.`,
+        `You're the best, ${userName}! Feedback is now posted.`,
+        `Thanks for the insight, ${userName}! It's posted.`,
+        `Done and done, ${userName}! Your feedback is now live.`,
+        `Message received, ${userName}! Sharing your thoughts.`,
+        `You're awesome, ${userName}! Feedback posted.`,
+        `Thanks, ${userName}! Your message is on the way.`,
+        `Got it, ${userName}! Sharing your feedback now.`
+      ];      
     const randomResponse = responses[Math.floor(Math.random() * responses.length)];
     
     await web.chat.postMessage({
