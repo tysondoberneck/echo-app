@@ -6,10 +6,10 @@ async function getWeeklySummary() {
       feedback_start_date,
       feedback_end_date,
       sentiment_category,
-      summary_text
+      detailed_summary
     FROM slack_post_summary
-    WHERE feedback_start_date = (SELECT MAX(feedback_start_date) FROM slack_post_summary)
-    GROUP BY feedback_start_date, feedback_end_date, sentiment_category, summary_text
+    WHERE feedback_end_date = (SELECT MAX(feedback_end_date) FROM slack_post_summary)
+    GROUP BY feedback_start_date, feedback_end_date, sentiment_category, detailed_summary
   `;
 
   return new Promise((resolve, reject) => {
@@ -26,14 +26,12 @@ async function getWeeklySummary() {
   });
 }
 
-async function getWeeklyOpenEndedQuestion() {
+async function getOpenEndedQuestion() {
   const query = `
-    SELECT
-      feedback_start_date,
-      feedback_end_date,
-      open_ended_question
-    FROM slack_weekly_prompt
-    WHERE feedback_start_date = (SELECT MAX(feedback_start_date) FROM slack_weekly_prompt)
+    SELECT open_ended_question
+    FROM slack_post_summary
+    WHERE feedback_end_date = (SELECT MAX(feedback_end_date) FROM slack_post_summary)
+    LIMIT 1
   `;
 
   return new Promise((resolve, reject) => {
@@ -43,11 +41,15 @@ async function getWeeklyOpenEndedQuestion() {
         if (err) {
           reject('Error fetching open-ended question from Snowflake: ' + err);
         } else {
-          resolve(rows[0].open_ended_question);
+          if (rows.length > 0) {
+            resolve(rows[0].OPEN_ENDED_QUESTION);
+          } else {
+            reject('No open-ended question found');
+          }
         }
       }
     });
   });
 }
 
-module.exports = { getWeeklySummary, getWeeklyOpenEndedQuestion };
+module.exports = { getWeeklySummary, getOpenEndedQuestion };

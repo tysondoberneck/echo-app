@@ -3,6 +3,7 @@ const { storeRawEventInSnowflake } = require('./snowflake/events');
 const { postMessageToChannel } = require('./messageHandler');
 const async = require('async');
 
+// Create a queue for handling messages
 let messageQueue = async.queue(async (task, callback) => {
   const { event, userName, timestamp, web } = task;
   
@@ -51,6 +52,7 @@ let messageQueue = async.queue(async (task, callback) => {
   callback();
 }, 1);
 
+// Function to get the user's name
 async function getUserName(userId) {
   const web = getWebClient();
   try {
@@ -63,6 +65,7 @@ async function getUserName(userId) {
   }
 }
 
+// Function to handle Slack events
 async function handleSlackEvents(req, res) {
   const event = req.body.event;
   await ensureWebClientInitialized();
@@ -102,6 +105,7 @@ async function handleSlackEvents(req, res) {
   res.status(200).send('Event received');
 }
 
+// Function to send a welcome message to a user
 async function sendWelcomeMessage(userId) {
   const web = getWebClient();  // Get the WebClient instance
   try {

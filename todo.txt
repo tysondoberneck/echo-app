@@ -1,6 +1,7 @@
 [] echo will provide weekly prompts to the your-voice channel to drive engagement. ex: 'what drives you to do better in your job?'
         These prompts will be created by last weeks feedback to bring up relevant topics
-[] personalized greetings to the user. Switch up the replies made when a user messages Echo
+[x] personalized greetings to the user. Switch up the replies made when a user messages Echo
 [] custom tags? Allow users to self categorize with tags or topics
 [] gameification of some sort. Users earn points when they interact -- users will be recognzied when they hit certain milestones
 [] Echo bot will post polls/surveys
+[] when the user adds echo to their workspace, it will automatically add the channel 'your-voice' and configure everything to route events from it

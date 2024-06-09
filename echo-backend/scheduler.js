@@ -1,7 +1,7 @@
 const cron = require('node-cron');
 const { getWebClient, ensureWebClientInitialized } = require('./initializeTokens');
+const { getWeeklySummary, getOpenEndedQuestion } = require('./snowflake/weeklyFeedbackSummary');
 const { getAllUsersInChannel } = require('./slackUtils');
-const { getWeeklySummary, getWeeklyOpenEndedQuestion } = require('./snowflake/weeklyFeedbackSummary');
 
 // Function to send weekly summary
 async function sendWeeklySummary() {
@@ -18,7 +18,7 @@ async function sendWeeklySummary() {
 Here is the feedback for the week of ${formattedStartDate} to ${formattedEndDate}:
 
 *${s.SENTIMENT_CATEGORY.charAt(0).toUpperCase() + s.SENTIMENT_CATEGORY.slice(1)} Feedback:*
-${s.SUMMARY_TEXT}
+${s.DETAILED_SUMMARY}
       `;
     }).join('\n\n');
 
@@ -37,34 +37,34 @@ ${s.SUMMARY_TEXT}
   }
 }
 
-// Function to post weekly open-ended question
-async function postWeeklyOpenEndedQuestion() {
+// Function to send weekly open-ended question
+async function sendWeeklyQuestion() {
   const web = getWebClient();  // Get the WebClient instance
   try {
     await ensureWebClientInitialized();
-    const question = await getWeeklyOpenEndedQuestion();
+    const question = await getOpenEndedQuestion();
     
-    await web.chat.postMessage({
+    web.chat.postMessage({
       channel: process.env.SLACK_CHANNEL_ID,
-      text: `Here's an open-ended question based on last week's feedback:\n\n${question}`,
-    });
-    
-    console.log('Open-ended question posted to #your-voice');
+      text: question,
+    }).catch(error => console.error('Error sending weekly question:', error));
+
+    console.log('Weekly question sent to #your-voice');
   } catch (error) {
-    console.error('Error posting open-ended question:', error);
+    console.error('Error sending weekly question:', error);
   }
 }
 
-// Schedule task to run every Friday at 9 AM
+// Schedule task to run every Friday at 9 AM for the weekly summary
 cron.schedule('0 9 * * 5', () => {
   console.log('Running scheduled task: Sending weekly summary');
   sendWeeklySummary();
 });
 
-// Schedule task to run every Tuesday at 9 AM
+// Schedule task to run every Tuesday at 9 AM for the weekly open-ended question
 cron.schedule('0 9 * * 2', () => {
-  console.log('Running scheduled task: Posting open-ended question');
-  postWeeklyOpenEndedQuestion();
+  console.log('Running scheduled task: Sending weekly question');
+  sendWeeklyQuestion();
 });
 
-module.exports = { sendWeeklySummary, postWeeklyOpenEndedQuestion };
+module.exports = { sendWeeklySummary, sendWeeklyQuestion };
