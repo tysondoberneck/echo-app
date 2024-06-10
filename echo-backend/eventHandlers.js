@@ -6,33 +6,33 @@ const async = require('async');
 // Create a queue for handling messages
 let messageQueue = async.queue(async (task, callback) => {
   const { event, userName, timestamp, web, team_id } = task;
-  
+
   try {
     // Reply to the user asynchronously
     const responses = [
-        `Thanks for the feedback, ${userName}! I'll get that posted for you.`,
-        `${userName}, your feedback is appreciated! I'll make sure it gets posted.`,
-        `Got it, ${userName}! Your feedback will be posted.`,
-        `Thanks, ${userName}! I'll handle posting your feedback.`,
-        `Beep Boop🤖, ${userName}! Consider it shared.`,
-        `Your thoughts are on their way to the team, ${userName}!`,
-        `Feedback received, ${userName}! Posting it now.`,
-        `Thanks a ton, ${userName}! Your feedback is heading to the channel.`,
-        `You're amazing, ${userName}! Your feedback is being posted.`,
-        `Superb, ${userName}! I've posted your feedback.`,
-        `Thanks for sharing, ${userName}! It's now live.`,
-        `Got your feedback, ${userName}! Sending it out.`,
-        `Thanks for speaking up, ${userName}! Your feedback is posted.`,
-        `You're the best, ${userName}! Feedback is now posted.`,
-        `Thanks for the insight, ${userName}! It's posted.`,
-        `Done and done, ${userName}! Your feedback is now live.`,
-        `Message received, ${userName}! Sharing your thoughts.`,
-        `You're awesome, ${userName}! Feedback posted.`,
-        `Thanks, ${userName}! Your message is on the way.`,
-        `Got it, ${userName}! Sharing your feedback now.`
-      ];      
+      `Thanks for the feedback, ${userName}! I'll get that posted for you.`,
+      `${userName}, your feedback is appreciated! I'll make sure it gets posted.`,
+      `Got it, ${userName}! Your feedback will be posted.`,
+      `Thanks, ${userName}! I'll handle posting your feedback.`,
+      `Beep Boop🤖, ${userName}! Consider it shared.`,
+      `Your thoughts are on their way to the team, ${userName}!`,
+      `Feedback received, ${userName}! Posting it now.`,
+      `Thanks a ton, ${userName}! Your feedback is heading to the channel.`,
+      `You're amazing, ${userName}! Your feedback is being posted.`,
+      `Superb, ${userName}! I've posted your feedback.`,
+      `Thanks for sharing, ${userName}! It's now live.`,
+      `Got your feedback, ${userName}! Sending it out.`,
+      `Thanks for speaking up, ${userName}! Your feedback is posted.`,
+      `You're the best, ${userName}! Feedback is now posted.`,
+      `Thanks for the insight, ${userName}! It's posted.`,
+      `Done and done, ${userName}! Your feedback is now live.`,
+      `Message received, ${userName}! Sharing your thoughts.`,
+      `You're awesome, ${userName}! Feedback posted.`,
+      `Thanks, ${userName}! Your message is on the way.`,
+      `Got it, ${userName}! Sharing your feedback now.`
+    ];
     const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-    
+
     await web.chat.postMessage({
       channel: event.channel,
       text: randomResponse,
@@ -89,7 +89,7 @@ async function handleSlackEvents(req, res) {
         // Handle direct messages
         const userName = await getUserName(event.user);
         console.log(`[${timestamp}] Direct message received: ${event.text}`);
-        
+
         // Add the message to the queue
         messageQueue.push({ event, userName, timestamp, web, reqBody: req.body, team_id: event.team });
       }
@@ -128,4 +128,46 @@ Thank you for helping us improve!`,
   }
 }
 
-module.exports = { handleSlackEvents };
+// Function to handle Slack actions
+async function handleSlackActions(req, res) {
+  console.log('Slack action payload:', req.body.payload); // Log the payload for debugging
+  const payload = JSON.parse(req.body.payload);
+  const { type, view, user, trigger_id } = payload;
+  const web = getWebClient();
+
+  try {
+    if (type === 'view_submission' && view.callback_id === 'feedback_modal') {
+      // Handle feedback modal submission
+      const feedback = view.state.values.feedback_block.feedback.value;
+      console.log('Feedback received:', feedback);
+
+      await web.chat.postMessage({
+        channel: process.env.SLACK_CHANNEL_ID,
+        text: `Anonymous feedback: ${feedback}`
+      });
+
+      // Store the original feedback event in Snowflake
+      await storeRawEventInSnowflake({
+        event_id: `view_submission_${Date.now()}`,
+        team_id: payload.team.id,
+        user_id: user.id,
+        event_time: Date.now(),
+        event_type: 'feedback',
+        event_text: feedback,
+        raw_event: JSON.stringify(payload),
+      });
+
+      console.log('Feedback posted to channel:', process.env.SLACK_CHANNEL_ID);
+
+      res.status(200).send();
+    } else {
+      console.log('Unhandled action type:', type);
+      res.status(200).send();
+    }
+  } catch (error) {
+    console.error('Error handling Slack action:', error);
+    res.status(500).send('Internal Server Error');
+  }
+}
+
+module.exports = { handleSlackEvents, handleSlackActions };
