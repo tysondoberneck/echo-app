@@ -11,8 +11,8 @@ let botUserId;
 async function initializeTokens() {
   try {
     const tokens = await getTokensFromSnowflake();
-    slackToken = tokens.ACCESS_TOKEN;
-    refreshToken = tokens.REFRESH_TOKEN;
+    slackToken = tokens.access_token || tokens.ACCESS_TOKEN;
+    refreshToken = tokens.refresh_token || tokens.REFRESH_TOKEN;
     web = new WebClient(slackToken);
 
     // Fetch bot user ID
@@ -65,10 +65,18 @@ async function refreshAccessToken() {
   }
 }
 
+function getWebClient() {
+  return web;
+}
+
+function getBotUserId() {
+  return botUserId;
+}
+
 module.exports = {
   initializeTokens,
   ensureWebClientInitialized,
   refreshAccessToken,
-  getWebClient: () => web,  // Export a function to get the WebClient
-  getBotUserId: () => botUserId  // Export a function to get the bot user ID
+  getWebClient,
+  getBotUserId
 };

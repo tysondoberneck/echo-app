@@ -5,9 +5,11 @@ const cors = require('cors');
 const { handleSlackEvents } = require('./eventHandlers');
 const { handleFeedback, handleSentiment, handleBotPostCounts } = require('./apiHandlers');
 const { initializeTokens } = require('./initializeTokens');
-const oauthRouter = require('./oauth');  // Ensure this line is included
+const oauthRouter = require('./oauth');
+const commandsRouter = require('./commands');
 
 const app = express();
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(cors());
 
@@ -16,7 +18,8 @@ initializeTokens();
 // Initialize the scheduler
 require('./scheduler');
 
-app.use('/oauth', oauthRouter);  // Ensure this line is included
+app.use('/oauth', oauthRouter);
+app.use('/commands', commandsRouter);
 app.post('/slack/events', handleSlackEvents);
 
 app.get('/api/feedback', handleFeedback);

@@ -1,6 +1,6 @@
 const express = require('express');
 const axios = require('axios');
-const { updateTokensInSnowflake } = require('./snowflake/tokens');  // Assuming this function is in your snowflake directory
+const { updateTokensInSnowflake } = require('./snowflake/tokens');
 
 const router = express.Router();
 
