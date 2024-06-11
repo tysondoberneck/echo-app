@@ -5,10 +5,9 @@ async function getSummarizedData() {
     SELECT
       sentiment_category,
       avg_sentiment_score,
-      summary_text,
+      numbered_weighted_posts
       detailed_summary,
-      all_numbered_posts,
-      number_of_posts
+      open_ended_question,
     FROM ECHO_DB.ECHO_SCHEMA.SLACK_POST_SUMMARY;
   `;
 

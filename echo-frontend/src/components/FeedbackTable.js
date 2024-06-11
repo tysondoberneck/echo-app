@@ -35,10 +35,9 @@ const FeedbackTable = () => {
         <tr>
           <th>Sentiment Category</th>
           <th>Average Sentiment Score</th>
-          <th>Summary Text</th>
-          <th>All Numbered Posts</th>
+          <th>Numbered and Weighted Posts</th>
           <th>Detailed Summary</th>
-          <th>Number of Posts</th>
+          <th>Open Ended Question</th>
         </tr>
       </thead>
       <tbody>
@@ -46,10 +45,9 @@ const FeedbackTable = () => {
           <tr key={index}>
             <td>{item.SENTIMENT_CATEGORY}</td>
             <td>{item.AVG_SENTIMENT_SCORE}</td>
-            <td>{item.SUMMARY_TEXT}</td>
-            <td>{item.ALL_NUMBERED_POSTS}</td>
+            <td>{item.NUMBERED_WEIGHTED_POSTS}</td>
             <td>{item.DETAILED_SUMMARY}</td>
-            <td>{item.NUMBER_OF_POSTS}</td>
+            <td>{item.OPEN_ENDED_QUESTION}</td>
           </tr>
         ))}
       </tbody>
