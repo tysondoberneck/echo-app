@@ -1,12 +1,12 @@
 const express = require('express');
 const { ensureWebClientInitialized, getWebClient } = require('./initializeTokens');
-const { openFeedbackModal } = require('./modals');
-const { getSummaryFromSnowflake } = require('./snowflake/summaryRequest'); // Import the function to get summary
+const { openFeedbackModal, openSettingsModal } = require('./modals');
+const { getUserSettings } = require('./snowflake/settings');
 
 const router = express.Router();
 
 router.post('/echo', async (req, res) => {
-  const { trigger_id, text } = req.body;
+  const { trigger_id, text, user_id } = req.body;
   await ensureWebClientInitialized();
   const web = getWebClient();
 
@@ -20,9 +20,9 @@ router.post('/echo', async (req, res) => {
           - /echo help: Show this help message
           - /echo poll: Create a poll
           - /echo feedback: Submit feedback anonymously
-          - /echo summary positive: Get a summary of the positive feedback
-          - /echo summary negative: Get a summary of the negative feedback
+          - /echo summary: Get a summary of the recent feedback
           - /echo status: Check the status of the bot
+          - /echo settings: Open admin settings
         `;
         await web.chat.postMessage({ channel: req.body.channel_id, text: helpMessage });
         break;
@@ -36,18 +36,23 @@ router.post('/echo', async (req, res) => {
         break;
 
       case 'summary':
-        if (args[1] === 'positive' || args[1] === 'negative') {
-          const sentiment = args[1];
-          const summary = await getSummaryFromSnowflake(sentiment);
-          await web.chat.postMessage({ channel: req.body.channel_id, text: summary });
-        } else {
-          await web.chat.postMessage({ channel: req.body.channel_id, text: 'Please specify "positive" or "negative" for the summary.' });
-        }
+        // Placeholder: Replace with actual logic to fetch summary from your database
+        const summary = "Summary of recent feedback: ...";
+        await web.chat.postMessage({ channel: req.body.channel_id, text: summary });
         break;
 
       case 'status':
         const statusMessage = 'Echo bot is running smoothly.';
         await web.chat.postMessage({ channel: req.body.channel_id, text: statusMessage });
+        break;
+
+      case 'settings':
+        const userSettings = await getUserSettings(user_id);
+        if (userSettings && userSettings.IS_ADMIN) {
+          await openSettingsModal(trigger_id);
+        } else {
+          await web.chat.postMessage({ channel: req.body.channel_id, text: 'You do not have permission to access settings.' });
+        }
         break;
 
       default:

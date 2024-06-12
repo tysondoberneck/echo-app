@@ -1,6 +1,7 @@
 const { getWebClient, ensureWebClientInitialized, getBotUserId } = require('./initializeTokens');
 const { storeRawEventInSnowflake } = require('./snowflake/events');
 const { postMessageToChannel } = require('./messageHandler');
+const { getUserSettings, updateUserSettings } = require('./snowflake/settings');
 const async = require('async');
 
 // Create a queue for handling messages
@@ -105,6 +106,41 @@ async function handleSlackEvents(req, res) {
   res.status(200).send('Event received');
 }
 
+// Function to handle Slack actions
+async function handleSlackActions(req, res) {
+  console.log('Slack action payload:', req.body.payload); // Log the payload for debugging
+  const payload = JSON.parse(req.body.payload);
+  const { type, view, user } = payload;
+  const web = getWebClient();
+
+  try {
+    if (type === 'view_submission' && view.callback_id === 'settings_modal') {
+      // Handle settings modal submission
+      const adminUsers = view.state.values.admin_users_block.admin_users.selected_users;
+
+      console.log('Admin Users:', adminUsers);
+
+      // Update user settings in Snowflake
+      for (const adminUser of adminUsers) {
+        await updateUserSettings({
+          user_id: adminUser,
+          is_admin: true
+        });
+      }
+
+      console.log('Settings updated for admin users:', adminUsers);
+
+      res.status(200).send();
+    } else {
+      console.log('Unhandled action type:', type);
+      res.status(200).send();
+    }
+  } catch (error) {
+    console.error('Error handling Slack action:', error);
+    res.status(500).send('Internal Server Error');
+  }
+}
+
 // Function to send a welcome message to a user
 async function sendWelcomeMessage(userId) {
   const web = getWebClient();  // Get the WebClient instance
@@ -125,48 +161,6 @@ Thank you for helping us improve!`,
     console.log(`Welcome message sent to user: ${userId}`);
   } catch (error) {
     console.error('Error sending welcome message:', error);
-  }
-}
-
-// Function to handle Slack actions
-async function handleSlackActions(req, res) {
-  console.log('Slack action payload:', req.body.payload); // Log the payload for debugging
-  const payload = JSON.parse(req.body.payload);
-  const { type, view, user, trigger_id } = payload;
-  const web = getWebClient();
-
-  try {
-    if (type === 'view_submission' && view.callback_id === 'feedback_modal') {
-      // Handle feedback modal submission
-      const feedback = view.state.values.feedback_block.feedback.value;
-      console.log('Feedback received:', feedback);
-
-      await web.chat.postMessage({
-        channel: process.env.SLACK_CHANNEL_ID,
-        text: `Anonymous feedback: ${feedback}`
-      });
-
-      // Store the original feedback event in Snowflake
-      await storeRawEventInSnowflake({
-        event_id: `view_submission_${Date.now()}`,
-        team_id: payload.team.id,
-        user_id: user.id,
-        event_time: Date.now(),
-        event_type: 'feedback',
-        event_text: feedback,
-        raw_event: JSON.stringify(payload),
-      });
-
-      console.log('Feedback posted to channel:', process.env.SLACK_CHANNEL_ID);
-
-      res.status(200).send();
-    } else {
-      console.log('Unhandled action type:', type);
-      res.status(200).send();
-    }
-  } catch (error) {
-    console.error('Error handling Slack action:', error);
-    res.status(500).send('Internal Server Error');
   }
 }
 
