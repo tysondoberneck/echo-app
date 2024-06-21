@@ -1,11 +1,12 @@
 const express = require('express');
 const { ensureWebClientInitialized, getWebClient } = require('./initializeTokens');
-const { openFeedbackModal, openSettingsModal } = require('./modals');
+const { openFeedbackModal, openSettingsModal, openPollModal } = require('./modals'); // Added openPollModal
 const { getUserSettings } = require('./snowflake/settings');
 
 const router = express.Router();
 
 router.post('/echo', async (req, res) => {
+  console.log('Received /echo command:', req.body);
   const { trigger_id, text, user_id } = req.body;
   await ensureWebClientInitialized();
   const web = getWebClient();
@@ -28,7 +29,7 @@ router.post('/echo', async (req, res) => {
         break;
 
       case 'poll':
-        await openPollModal(trigger_id); // Ensure this function is defined if used
+        await openPollModal(trigger_id);
         break;
 
       case 'feedback':
@@ -56,13 +57,13 @@ router.post('/echo', async (req, res) => {
         break;
 
       default:
-        await web.chat.postMessage({ channel: req.body.channel_id, text: 'Command executed successfully' });
+        await web.chat.postMessage({ channel: req.body.channel_id, text: 'Unknown command. Try /echo help for a list of available commands.' });
         break;
     }
 
     res.status(200).send();
   } catch (error) {
-    console.error('Error sending message:', error);
+    console.error('Error handling /echo command:', error);
     res.status(500).send('Internal Server Error');
   }
 });

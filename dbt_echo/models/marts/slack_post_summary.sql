@@ -1,7 +1,6 @@
 {{
   config(
-    materialized='incremental',
-    unique_key='team_id_alias1, sentiment_category, feedback_start_date'
+    materialized='incremental'
   )
 }}
 
@@ -20,7 +19,11 @@ with base_posts as (
 filtered_posts as (
   select
     bp.*,
-    bp.team_id_alias1 as team_id_alias2  -- Rename team_id_alias1 to team_id_alias2
+    bp.team_id_alias1 as team_id_alias2,  -- Rename team_id_alias1 to team_id_alias2
+    case 
+      when bp.sentiment_score > 0 then 'positive' 
+      else 'negative' 
+    end as sentiment_category_filtered_posts
   from base_posts bp
   where bp.sentiment_score <= -0.40 or bp.sentiment_score >= 0.40
 ),
@@ -29,12 +32,12 @@ filtered_posts as (
 numbered_posts as (
   select
     fp.*,
-    row_number() over (partition by fp.team_id_alias2, case when fp.sentiment_score > 0 then 'positive' else 'negative' end order by fp.event_time) as post_number,
+    row_number() over (
+      partition by date_trunc('week', fp.event_time - interval '1 day'), fp.sentiment_category_filtered_posts
+      order by fp.event_time
+    ) as post_number,
     concat(fp.event_text, ' (weight: ', fp.weight, ')') as weighted_text,
-    case 
-      when fp.sentiment_score > 0 then 'positive' 
-      else 'negative' 
-    end as sentiment_category,
+    fp.sentiment_category_filtered_posts as sentiment_category_numbered_posts,
     fp.team_id_alias2 as team_id_alias3  -- Rename team_id_alias2 to team_id_alias3
   from filtered_posts fp
 ),
@@ -43,9 +46,10 @@ numbered_posts as (
 week_grouped_posts as (
   select
     np.*,
-    date_trunc('week', np.event_time) + interval '0 day' as feedback_start_date,
-    date_trunc('week', np.event_time) + interval '4 days' as feedback_end_date,
-    np.team_id_alias3 as team_id_alias4  -- Rename team_id_alias3 to team_id_alias4
+    date_trunc('week', np.event_time - interval '1 day') + interval '1 day' as feedback_start_date,
+    date_trunc('week', np.event_time - interval '1 day') + interval '7 days' - interval '1 second' as feedback_end_date,
+    np.team_id_alias3 as team_id_alias4,  -- Rename team_id_alias3 to team_id_alias4
+    np.sentiment_category_numbered_posts as sentiment_category_week_grouped_posts
   from numbered_posts np
 ),
 
@@ -53,7 +57,7 @@ week_grouped_posts as (
 combined_feedback as (
   select
     wgp.team_id_alias4,
-    wgp.sentiment_category,
+    wgp.sentiment_category_week_grouped_posts as sentiment_category_combined_feedback,
     wgp.feedback_start_date,
     wgp.feedback_end_date,
     avg(wgp.sentiment_score) as avg_sentiment_score,
@@ -61,26 +65,26 @@ combined_feedback as (
     array_agg(concat(wgp.post_number, '. ', wgp.weighted_text)) as numbered_posts,
     count(*) as number_of_posts
   from week_grouped_posts wgp
-  group by wgp.team_id_alias4, wgp.sentiment_category, wgp.feedback_start_date, wgp.feedback_end_date
+  group by wgp.team_id_alias4, wgp.sentiment_category_week_grouped_posts, wgp.feedback_start_date, wgp.feedback_end_date
 ),
 
 -- Step 6: Convert the array of numbered posts into a single string for use in the Cortex Complete function
 numbered_posts_string as (
   select
     wgp.team_id_alias4 as team_id_alias5,
-    wgp.sentiment_category,
+    wgp.sentiment_category_week_grouped_posts as sentiment_category_numbered_posts_string,
     wgp.feedback_start_date,
     wgp.feedback_end_date,
     array_to_string(array_agg(concat(wgp.post_number, '. ', wgp.weighted_text)), ' ') as numbered_posts_string
   from week_grouped_posts wgp
-  group by wgp.team_id_alias4, wgp.sentiment_category, wgp.feedback_start_date, wgp.feedback_end_date
+  group by wgp.team_id_alias4, wgp.sentiment_category_week_grouped_posts, wgp.feedback_start_date, wgp.feedback_end_date
 ),
 
 -- Final Select: Fetch the combined feedback, detailed summary, and open-ended question for each sentiment category and feedback week
 final_combined as (
   select
     cf.team_id_alias4 as team_id_alias6,
-    cf.sentiment_category,
+    cf.sentiment_category_combined_feedback as sentiment_category_final_combined,
     cf.avg_sentiment_score,
     cf.feedback_start_date,
     cf.feedback_end_date,
@@ -104,7 +108,7 @@ final_combined as (
   from combined_feedback cf
   join numbered_posts_string nps
   on cf.team_id_alias4 = nps.team_id_alias5
-  and cf.sentiment_category = nps.sentiment_category
+  and cf.sentiment_category_combined_feedback = nps.sentiment_category_numbered_posts_string
   and cf.feedback_start_date = nps.feedback_start_date
   and cf.feedback_end_date = nps.feedback_end_date
 )
@@ -112,7 +116,7 @@ final_combined as (
 -- Final select to apply the incremental logic
 select 
   final_combined.team_id_alias6 as team_id,
-  final_combined.sentiment_category,
+  final_combined.sentiment_category_final_combined as sentiment_category,
   final_combined.avg_sentiment_score,
   final_combined.feedback_start_date,
   final_combined.feedback_end_date,

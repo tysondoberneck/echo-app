@@ -1,11 +1,11 @@
-const { getWebClient, ensureWebClientInitialized } = require('./initializeTokens');
+const { getAppInstance, ensureWebClientInitialized } = require('./initializeTokens');
 
 async function getAllUsersInChannel(channelId) {
-  const web = getWebClient();  // Get the WebClient instance
+  const app = getAppInstance();
   await ensureWebClientInitialized();
 
   try {
-    const result = await web.conversations.members({
+    const result = await app.client.conversations.members({
       channel: channelId
     });
 

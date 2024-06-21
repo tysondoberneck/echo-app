@@ -53,54 +53,114 @@ const openFeedbackModal = async (trigger_id) => {
 };
 
 const openSettingsModal = async (trigger_id) => {
-  const web = getWebClient();
-  
-  const modalView = {
-    type: 'modal',
-    callback_id: 'settings_modal',
-    title: {
-      type: 'plain_text',
-      text: 'Admin Settings'
-    },
-    submit: {
-      type: 'plain_text',
-      text: 'Save'
-    },
-    close: {
-      type: 'plain_text',
-      text: 'Cancel'
-    },
-    blocks: [
-      {
-        type: 'section',
-        text: {
-          type: 'mrkdwn',
-          text: 'Manage admin settings and preferences.'
-        }
-      },
-      {
-        type: 'input',
-        block_id: 'admin_users_block',
-        element: {
-          type: 'multi_users_select',
-          action_id: 'admin_users',
-          placeholder: {
-            type: 'plain_text',
-            text: 'Select users to grant admin access'
-          }
-        },
-        label: {
-          type: 'plain_text',
-          text: 'Grant Admin Access'
-        }
-      }
-    ]
-  };
+const web = getWebClient();
 
-  await web.views.open({
-    trigger_id: trigger_id,
-    view: modalView
-  });
+const modalView = {
+type: 'modal',
+callback_id: 'settings_modal',
+title: {
+type: 'plain_text',
+text: 'Admin Settings'
+},
+submit: {
+type: 'plain_text',
+text: 'Save'
+},
+close: {
+type: 'plain_text',
+text: 'Cancel'
+},
+blocks: [
+{
+type: 'section',
+text: {
+type: 'mrkdwn',
+text: 'Manage admin settings and preferences.'
+}
+},
+{
+type: 'input',
+block_id: 'admin_users_block',
+element: {
+type: 'multi_users_select',
+action_id: 'admin_users',
+placeholder: {
+type: 'plain_text',
+text: 'Select users to grant admin access'
+}
+},
+label: {
+type: 'plain_text',
+text: 'Grant Admin Access'
+}
+}
+]
 };
 
-module.exports = { openFeedbackModal, openSettingsModal };
+await web.views.open({
+trigger_id: trigger_id,
+view: modalView
+});
+};
+
+const openPollModal = async (trigger_id) => {
+const web = getWebClient();
+
+const modalView = {
+type: 'modal',
+callback_id: 'poll_modal',
+title: {
+type: 'plain_text',
+text: 'Create Poll'
+},
+submit: {
+type: 'plain_text',
+text: 'Create'
+},
+close: {
+type: 'plain_text',
+text: 'Cancel'
+},
+blocks: [
+{
+type: 'input',
+block_id: 'poll_question_block',
+element: {
+type: 'plain_text_input',
+action_id: 'poll_question',
+placeholder: {
+type: 'plain_text',
+text: 'Enter your poll question'
+}
+},
+label: {
+type: 'plain_text',
+text: 'Poll Question'
+}
+},
+{
+type: 'input',
+block_id: 'poll_options_block',
+element: {
+type: 'plain_text_input',
+action_id: 'poll_options',
+placeholder: {
+type: 'plain_text',
+text: 'Enter poll options separated by commas'
+}
+},
+label: {
+type: 'plain_text',
+text: 'Poll Options'
+}
+}
+]
+};
+
+await web.views.open({
+trigger_id: trigger_id,
+view: modalView
+});
+};
+
+module.exports = { openFeedbackModal, openSettingsModal, openPollModal };
