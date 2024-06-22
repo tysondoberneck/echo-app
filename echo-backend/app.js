@@ -51,7 +51,7 @@ const receiver = new ExpressReceiver({
       console.log('Storing installation tokens in Snowflake...');
       const accessToken = installation.bot.token;
       const refreshToken = installation.bot.refresh_token;
-      await updateTokensInSnowflake(accessToken, refreshToken);
+      await updateTokensInSnowflake(accessToken, refreshToken, false); // false to prevent modifying refresh token
       console.log('Stored installation tokens in Snowflake');
     },
     fetchInstallation: async (installQuery) => {
@@ -200,19 +200,27 @@ async function getTokensFromSnowflake() {
   });
 }
 
-async function updateTokensInSnowflake(accessToken, refreshToken) {
+async function updateTokensInSnowflake(accessToken, refreshToken, replaceRefreshToken = true) {
   return new Promise((resolve, reject) => {
-    const query = `
-      MERGE INTO ECHO_DB.ECHO_SCHEMA.tokens AS target
-      USING (SELECT 'slack' AS id, ? AS access_token, ? AS refresh_token) AS source
-      ON target.id = source.id
-      WHEN MATCHED THEN UPDATE SET target.access_token = source.access_token, target.refresh_token = source.refresh_token
-      WHEN NOT MATCHED THEN INSERT (id, access_token, refresh_token) VALUES (source.id, source.access_token, source.refresh_token);
-    `;
+    const query = replaceRefreshToken
+      ? `
+        MERGE INTO ECHO_DB.ECHO_SCHEMA.tokens AS target
+        USING (SELECT 'slack' AS id, ? AS access_token, ? AS refresh_token) AS source
+        ON target.id = source.id
+        WHEN MATCHED THEN UPDATE SET target.access_token = source.access_token, target.refresh_token = source.refresh_token
+        WHEN NOT MATCHED THEN INSERT (id, access_token, refresh_token) VALUES (source.id, source.access_token, source.refresh_token);
+      `
+      : `
+        MERGE INTO ECHO_DB.ECHO_SCHEMA.tokens AS target
+        USING (SELECT 'slack' AS id, ? AS access_token) AS source
+        ON target.id = source.id
+        WHEN MATCHED THEN UPDATE SET target.access_token = source.access_token
+        WHEN NOT MATCHED THEN INSERT (id, access_token, refresh_token) VALUES (source.id, source.access_token, (SELECT refresh_token FROM ECHO_DB.ECHO_SCHEMA.tokens WHERE id = 'slack'));
+      `;
 
     snowflakeConnection.execute({
       sqlText: query,
-      binds: [accessToken, refreshToken],
+      binds: replaceRefreshToken ? [accessToken, refreshToken] : [accessToken],
       complete: (err, stmt, rows) => {
         if (err) {
           reject('Error updating tokens in Snowflake: ' + err);
@@ -254,14 +262,16 @@ async function refreshAccessToken(refreshToken) {
       },
     });
 
+    console.log('Response from Slack:', response.data);
+
     if (response.data.ok) {
       console.log('Token refreshed successfully.');
       const newAccessToken = response.data.access_token;
 
       console.log('New Access Token:', newAccessToken);
 
-      // Update Snowflake with new access token
-      await updateTokensInSnowflake(newAccessToken, refreshToken);
+      // Update Snowflake with new access token, keeping the refresh token unchanged
+      await updateTokensInSnowflake(newAccessToken, refreshToken, false);
 
       console.log('Access token updated in Snowflake.');
     } else {
