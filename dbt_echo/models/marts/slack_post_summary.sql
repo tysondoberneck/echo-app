@@ -1,6 +1,7 @@
 {{
   config(
-    materialized='incremental'
+    materialized='incremental',
+    unique_key='team_id, sentiment_category, feedback_start_date'
   )
 }}
 
@@ -83,8 +84,8 @@ numbered_posts_string as (
 -- Final Select: Fetch the combined feedback, detailed summary, and open-ended question for each sentiment category and feedback week
 final_combined as (
   select
-    cf.team_id_alias4 as team_id_alias6,
-    cf.sentiment_category_combined_feedback as sentiment_category_final_combined,
+    cf.team_id_alias4 as team_id,
+    cf.sentiment_category_combined_feedback as sentiment_category,
     cf.avg_sentiment_score,
     cf.feedback_start_date,
     cf.feedback_end_date,
@@ -115,8 +116,8 @@ final_combined as (
 
 -- Final select to apply the incremental logic
 select 
-  final_combined.team_id_alias6 as team_id,
-  final_combined.sentiment_category_final_combined as sentiment_category,
+  final_combined.team_id,
+  final_combined.sentiment_category,
   final_combined.avg_sentiment_score,
   final_combined.feedback_start_date,
   final_combined.feedback_end_date,

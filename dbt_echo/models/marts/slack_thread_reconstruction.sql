@@ -94,7 +94,7 @@ reactions as (
     token,
     type,
     null as is_bot_post,
-    reaction_item_ts as thread_id,
+    md5(reaction_item_ts) as thread_id,  -- Ensure thread_id matches format in posts and replies
     reaction_item_user as parent_user_id,
     'reaction' as event_subtype
   from {{ ref('int_slack_reactions') }}
