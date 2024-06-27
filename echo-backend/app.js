@@ -55,9 +55,9 @@ const receiver = new ExpressReceiver({
       console.log('Stored installation tokens in Snowflake');
     },
     fetchInstallation: async (installQuery) => {
-      console.log('Fetching tokens from Snowflake...');
+      // console.log('Fetching tokens from Snowflake...');
       const tokens = await getTokensFromSnowflake();
-      console.log('Fetched tokens from Snowflake:', tokens);
+      // console.log('Fetched tokens from Snowflake:', tokens);
       return {
         team: installQuery.teamId,
         enterprise: installQuery.enterpriseId,
@@ -86,13 +86,13 @@ receiver.router.post('/commands/echo', async (req, res) => {
 
   try {
     const tokens = await getTokensFromSnowflake();
-    console.log('Fetched tokens from Snowflake:', tokens);
+    // console.log('Fetched tokens from Snowflake:', tokens);
     if (await isAccessTokenExpired(tokens.ACCESS_TOKEN)) {
       await refreshAccessToken(tokens.REFRESH_TOKEN);
     }
 
     const updatedTokens = await getTokensFromSnowflake();
-    console.log('Updated tokens:', updatedTokens);
+    // console.log('Updated tokens:', updatedTokens);
 
     if (text.trim() === 'feedback') {
       await openFeedbackModal(trigger_id, updatedTokens.ACCESS_TOKEN);
@@ -123,7 +123,7 @@ receiver.router.post('/slack/actions', async (req, res) => {
 
     try {
       const tokens = await getTokensFromSnowflake();
-      console.log('Fetched tokens from Snowflake:', tokens);
+      // console.log('Fetched tokens from Snowflake:', tokens);
 
       await app.client.chat.postMessage({
         token: tokens.ACCESS_TOKEN, // Ensure the correct token is used
@@ -145,13 +145,13 @@ app.event('message', async ({ event }) => {
   console.log('Received message event:', event);
   try {
     const tokens = await getTokensFromSnowflake();
-    console.log('Fetched tokens from Snowflake:', tokens);
+    // console.log('Fetched tokens from Snowflake:', tokens);
     if (await isAccessTokenExpired(tokens.ACCESS_TOKEN)) {
       await refreshAccessToken(tokens.REFRESH_TOKEN);
     }
 
     const updatedTokens = await getTokensFromSnowflake();
-    console.log('Updated tokens:', updatedTokens);
+    // console.log('Updated tokens:', updatedTokens);
 
     await storeRawEventInSnowflake(event); // Use the imported function here
     console.log('Event saved to Snowflake');

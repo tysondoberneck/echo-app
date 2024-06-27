@@ -16,7 +16,7 @@ function connectToSnowflake() {
       if (err) {
         reject(`Unable to connect: ${err.message}`);
       } else {
-        console.log('Successfully connected to Snowflake.');
+        // console.log('Successfully connected to Snowflake.');
         resolve(conn);
       }
     });

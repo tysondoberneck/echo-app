@@ -19,7 +19,7 @@ async function connectToSnowflake() {
       if (err) {
         reject(`Unable to connect: ${err.message}`);
       } else {
-        console.log('Successfully connected to Snowflake.');
+        // console.log('Successfully connected to Snowflake.');
         resolve(conn);
       }
     });
@@ -125,7 +125,7 @@ async function refreshAccessToken(refreshToken) {
 // Function to refresh the token if expired or on schedule
 async function refreshTokenIfExpired() {
   try {
-    console.log('Fetching tokens from Snowflake...');
+    // console.log('Fetching tokens from Snowflake...');
     const tokens = await getTokensFromSnowflake();
 
     if (tokens) {
