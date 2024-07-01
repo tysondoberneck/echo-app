@@ -38,8 +38,8 @@ async function refreshAccessToken(refreshToken) {
       const newAccessToken = response.data.access_token;
       console.log('New Access Token:', newAccessToken);
 
-      // Update Snowflake with new access token, keeping the refresh token unchanged
-      await updateTokensInSnowflake(newAccessToken, refreshToken);
+      // Update Snowflake with new access token
+      await updateTokensInSnowflake(newAccessToken);
 
       console.log('Access token updated in Snowflake.');
     } else {

@@ -43,19 +43,19 @@ async function getTokensFromSnowflake() {
   });
 }
 
-async function updateTokensInSnowflake(accessToken, refreshToken) {
+async function updateTokensInSnowflake(accessToken) {
   return new Promise((resolve, reject) => {
     const query = `
       MERGE INTO ECHO_DB.ECHO_SCHEMA.tokens AS target
-      USING (SELECT 'slack' AS id, ? AS access_token, ? AS refresh_token) AS source
+      USING (SELECT 'slack' AS id, ? AS access_token) AS source
       ON target.id = source.id
       WHEN MATCHED THEN UPDATE SET target.access_token = source.access_token
-      WHEN NOT MATCHED THEN INSERT (id, access_token, refresh_token) VALUES (source.id, source.access_token, source.refresh_token);
+      WHEN NOT MATCHED THEN INSERT (id, access_token, refresh_token) VALUES (source.id, source.access_token, target.refresh_token);
     `;
 
     snowflakeConnection.execute({
       sqlText: query,
-      binds: [accessToken, refreshToken],
+      binds: [accessToken],
       complete: (err, stmt, rows) => {
         if (err) {
           reject('Error updating tokens in Snowflake: ' + err);
@@ -66,6 +66,7 @@ async function updateTokensInSnowflake(accessToken, refreshToken) {
     });
   });
 }
+
 
 module.exports = {
   establishSnowflakeConnection,

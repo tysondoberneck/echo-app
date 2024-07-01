@@ -9,13 +9,11 @@ module.exports = function(receiver, app) {
 
     try {
       const tokens = await getTokensFromSnowflake();
-    //   console.log('Fetched tokens from Snowflake:', tokens);
       if (await isAccessTokenExpired(tokens.ACCESS_TOKEN)) {
         await refreshAccessToken(tokens.REFRESH_TOKEN);
       }
 
       const updatedTokens = await getTokensFromSnowflake();
-    //   console.log('Updated tokens:', updatedTokens);
 
       if (text.trim() === 'feedback') {
         await openFeedbackModal(app, trigger_id, updatedTokens.ACCESS_TOKEN);
@@ -36,31 +34,46 @@ module.exports = function(receiver, app) {
 
   receiver.router.post('/slack/actions', async (req, res) => {
     console.log('Received action:', req.body);
-    const payload = JSON.parse(req.body.payload);
+    try {
+      const payload = JSON.parse(req.body.payload);
+      console.log('Parsed payload:', payload);
 
-    if (payload.type === 'view_submission' && payload.view.callback_id === 'feedback_modal') {
-    //   console.log('Received feedback modal submission:', payload.view);
-
-      const feedback = payload.view.state.values.feedback_block.feedback.value;
-      const channelId = 'C075HRFGHDF'; // Replace with your channel ID
-
-      try {
-        const tokens = await getTokensFromSnowflake();
-        // console.log('Fetched tokens from Snowflake:', tokens);
-
-        await app.client.chat.postMessage({
-          token: tokens.ACCESS_TOKEN, // Ensure the correct token is used
-          channel: channelId,
-          text: `Anonymous feedback: ${feedback}`,
-        });
-        console.log('Feedback posted to Slack channel');
-        res.status(200).send();
-      } catch (error) {
-        console.error('Error posting feedback to Slack channel:', error);
-        res.status(500).send('Internal Server Error');
+      const tokens = await getTokensFromSnowflake();
+      console.log('Fetched tokens:', tokens);
+      
+      if (await isAccessTokenExpired(tokens.ACCESS_TOKEN)) {
+        await refreshAccessToken(tokens.REFRESH_TOKEN);
       }
-    } else {
-      res.status(400).send();
+      const updatedTokens = await getTokensFromSnowflake();
+      // console.log('Updated tokens:', updatedTokens);
+
+      if (payload.type === 'shortcut' && payload.callback_id === 'leave_anon_feedback') {
+        console.log('Shortcut triggered:', payload);
+        await openFeedbackModal(app, payload.trigger_id, updatedTokens.ACCESS_TOKEN);
+        res.status(200).send();
+      } else if (payload.type === 'view_submission' && payload.view.callback_id === 'feedback_modal') {
+        const feedback = payload.view.state.values.feedback_block.feedback.value;
+        const channelId = process.env.SLACK_CHANNEL_ID; // Use your channel ID from environment variables
+
+        try {
+          await app.client.chat.postMessage({
+            token: updatedTokens.ACCESS_TOKEN,
+            channel: channelId,
+            text: `Anonymous feedback: ${feedback}`,
+          });
+          console.log('Feedback posted to Slack channel');
+          res.status(200).send();
+        } catch (error) {
+          console.error('Error posting feedback to Slack channel:', error);
+          res.status(500).send('Internal Server Error');
+        }
+      } else {
+        console.log('Unexpected payload type or callback_id:', payload.type, payload.callback_id);
+        res.status(400).send();
+      }
+    } catch (error) {
+      console.error('Error handling action:', error);
+      res.status(400).send('Bad Request');
     }
   });
 };

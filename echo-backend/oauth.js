@@ -1,6 +1,6 @@
 const express = require('express');
 const axios = require('axios');
-const { updateTokensInSnowflake } = require('./snowflake/tokens');
+const { updateTokensInSnowflake } = require('./database');
 
 const router = express.Router();
 
