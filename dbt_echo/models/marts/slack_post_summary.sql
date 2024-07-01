@@ -1,7 +1,7 @@
 {{
   config(
     materialized='incremental',
-    unique_key='team_id, sentiment_category, feedback_start_date'
+    unique_key=['team_id', 'sentiment_category', 'feedback_start_date']
   )
 }}
 
