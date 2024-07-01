@@ -3,9 +3,14 @@ const { isAccessTokenExpired, refreshAccessToken } = require('../slack');
 const { openFeedbackModal, openSummaryModal } = require('../modals/modal');
 const { format } = require('date-fns'); // Import date-fns for date formatting
 
+// Helper function to get the current date and time as a formatted string
+function getCurrentDateTime() {
+  return format(new Date(), 'MM-dd-yyyy hh:mma'); // Format date as 'MM-dd-yyyy hh:mma'
+}
+
 module.exports = function(receiver, app) {
   receiver.router.post('/commands/echo', async (req, res) => {
-    console.log('Received /echo command:', req.body);
+    console.log(`[${getCurrentDateTime()}] Received /echo command:`, req.body);
     const { trigger_id, text, user_id, channel_id, team_id, response_url } = req.body;
 
     try {
@@ -21,7 +26,7 @@ module.exports = function(receiver, app) {
         res.status(200).send(''); // Immediate response to clear the command text
       } else if (text.trim() === 'summary') {
         // Log the channel ID to verify it's being passed correctly
-        console.log('Channel ID:', channel_id);
+        console.log(`[${getCurrentDateTime()}] Channel ID:`, channel_id);
         
         await openSummaryModal(app, trigger_id, updatedTokens.ACCESS_TOKEN, channel_id, team_id); // Pass channel_id and team_id
         res.status(200).send(''); // Immediate response to clear the command text
@@ -36,19 +41,19 @@ module.exports = function(receiver, app) {
         res.status(200).send();
       }
     } catch (error) {
-      console.error('Error handling /echo command:', error);
+      console.error(`[${getCurrentDateTime()}] Error handling /echo command:`, error);
       res.status(500).send('Internal Server Error');
     }
   });
 
   receiver.router.post('/slack/actions', async (req, res) => {
-    console.log('Received action:', req.body);
+    console.log(`[${getCurrentDateTime()}] Received action:`, req.body);
     try {
       const payload = JSON.parse(req.body.payload);
-      console.log('Parsed payload:', payload);
+      console.log(`[${getCurrentDateTime()}] Parsed payload:`, payload);
 
       const tokens = await getTokensFromSnowflake();
-      console.log('Fetched tokens:', tokens);
+      console.log(`[${getCurrentDateTime()}] Fetched tokens:`, tokens);
 
       if (await isAccessTokenExpired(tokens.ACCESS_TOKEN)) {
         await refreshAccessToken(tokens.REFRESH_TOKEN);
@@ -56,11 +61,11 @@ module.exports = function(receiver, app) {
       const updatedTokens = await getTokensFromSnowflake();
 
       if (payload.type === 'shortcut' && payload.callback_id === 'leave_anon_feedback') {
-        console.log('Shortcut triggered:', payload);
+        console.log(`[${getCurrentDateTime()}] Shortcut triggered:`, payload);
         await openFeedbackModal(app, payload.trigger_id, updatedTokens.ACCESS_TOKEN);
         res.status(200).send();
       } else if (payload.type === 'shortcut' && payload.callback_id === 'get_summarized_feedback') {
-        console.log('Shortcut triggered for summary:', payload);
+        console.log(`[${getCurrentDateTime()}] Shortcut triggered for summary:`, payload);
         
         // Fetch the user's IM channel
         const result = await app.client.conversations.open({
@@ -81,10 +86,10 @@ module.exports = function(receiver, app) {
             channel: channelId,
             text: `Anonymous feedback: ${feedback}`,
           });
-          console.log('Feedback posted to Slack channel');
+          console.log(`[${getCurrentDateTime()}] Feedback posted to Slack channel`);
           res.status(200).send();
         } catch (error) {
-          console.error('Error posting feedback to Slack channel:', error);
+          console.error(`[${getCurrentDateTime()}] Error posting feedback to Slack channel:`, error);
           res.status(500).send('Internal Server Error');
         }
       } else if (payload.type === 'view_submission' && payload.view.callback_id === 'summary_modal') {
@@ -93,8 +98,8 @@ module.exports = function(receiver, app) {
         const teamId = payload.view.private_metadata.split(',')[1]; // Retrieve team_id from private_metadata
 
         // Log the initialChannelId and teamId to verify they are being set correctly
-        console.log('Initial Channel ID:', initialChannelId);
-        console.log('Team ID:', teamId);
+        console.log(`[${getCurrentDateTime()}] Initial Channel ID:`, initialChannelId);
+        console.log(`[${getCurrentDateTime()}] Team ID:`, teamId);
 
         try {
           const summary = await fetchSummaryFromSnowflake(sentimentCategory, teamId);
@@ -115,7 +120,7 @@ module.exports = function(receiver, app) {
 
           res.status(200).send();
         } catch (error) {
-          console.error('Error fetching summary:', error);
+          console.error(`[${getCurrentDateTime()}] Error fetching summary:`, error);
           await app.client.chat.postEphemeral({
             token: updatedTokens.ACCESS_TOKEN,
             channel: initialChannelId, // Use the channel_id from the initial command
@@ -126,11 +131,11 @@ module.exports = function(receiver, app) {
 
         res.status(200).send();
       } else {
-        console.log('Unexpected payload type or callback_id:', payload.type, payload.callback_id);
+        console.log(`[${getCurrentDateTime()}] Unexpected payload type or callback_id:`, payload.type, payload.callback_id);
         res.status(400).send();
       }
     } catch (error) {
-      console.error('Error handling action:', error);
+      console.error(`[${getCurrentDateTime()}] Error handling action:`, error);
       res.status(400).send('Bad Request');
     }
   });
