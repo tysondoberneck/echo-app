@@ -67,9 +67,36 @@ async function updateTokensInSnowflake(accessToken) {
   });
 }
 
+async function fetchSummaryFromSnowflake(sentimentCategory, teamId) {
+  return new Promise((resolve, reject) => {
+    const query = `
+      SELECT DETAILED_SUMMARY, FEEDBACK_START_DATE, FEEDBACK_END_DATE
+      FROM ECHO_DB.ECHO_SCHEMA.slack_post_summary
+      WHERE sentiment_category = ?
+      AND team_id = ?
+      ORDER BY feedback_start_date DESC
+      LIMIT 1;
+    `;
+
+    snowflakeConnection.execute({
+      sqlText: query,
+      binds: [sentimentCategory, teamId],
+      complete: (err, stmt, rows) => {
+        if (err) {
+          reject('Error fetching summary from Snowflake: ' + err);
+        } else if (rows.length > 0) {
+          resolve(rows[0]);
+        } else {
+          reject('No summary found for the given sentiment category and team ID');
+        }
+      }
+    });
+  });
+}
 
 module.exports = {
   establishSnowflakeConnection,
   getTokensFromSnowflake,
   updateTokensInSnowflake,
+  fetchSummaryFromSnowflake, // Export the new function
 };

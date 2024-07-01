@@ -31,7 +31,7 @@ select
   event:channel as event_channel,
   event:channel_type as event_channel_type,
   event:client_msg_id as event_client_msg_id,
-  event:text as event_text,
+  regexp_replace(cast(event:text as varchar), '^Anonymous feedback: ', '') as event_text, -- Cast and trim prefix if it exists
   event:type as event_type,
   event:user as event_user,
   event:parent_user_id as event_parent_user_id,
@@ -57,7 +57,7 @@ select
   event:bot_profile.id as bot_profile_id,
   event:bot_profile.name as bot_profile_name,
   event:bot_profile.team_id as bot_profile_team_id,
-  event:bot_profile.updated as bot_profile_updated,
+  event:bot_profile.updated as bot_profile_updated
 from raw_events
 
 {% if is_incremental() %}

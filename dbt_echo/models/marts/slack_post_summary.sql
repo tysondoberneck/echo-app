@@ -1,6 +1,7 @@
 {{
   config(
     materialized='incremental',
+    on_schema_change='sync_all_columns',
     unique_key=['team_id', 'sentiment_category', 'feedback_start_date']
   )
 }}
@@ -32,23 +33,23 @@ numbered_posts as (
   select
     fp.*,
     row_number() over (
-      partition by date_trunc('week', fp.event_time - interval '1 day'), fp.sentiment_category
+      partition by date_trunc('week', fp.event_time - interval '1 day'), fp.team_id, fp.sentiment_category
       order by fp.event_time
     ) as post_number,
     concat(fp.event_text, ' (weight: ', fp.weight, ')') as weighted_text
   from filtered_posts fp
 ),
 
--- Step 4: Group posts by week, setting the start and end dates of the feedback week
+-- Step 4: Group posts by week and team_id, setting the start and end dates of the feedback week
 week_grouped_posts as (
   select
     np.*,
-    date_trunc('week', np.event_time - interval '1 day') + interval '1 day' as feedback_start_date,
-    date_trunc('week', np.event_time - interval '1 day') + interval '7 days' - interval '1 second' as feedback_end_date
+    (date_trunc('week', np.event_time - interval '1 day') + interval '1 day')::date as feedback_start_date,
+    (date_trunc('week', np.event_time - interval '1 day') + interval '7 days' - interval '1 second')::date as feedback_end_date
   from numbered_posts np
 ),
 
--- Step 5: Aggregate feedback by sentiment category and week, calculating average sentiment scores and aggregating feedback texts
+-- Step 5: Aggregate feedback by sentiment category, team_id, and week, calculating average sentiment scores and aggregating feedback texts
 combined_feedback as (
   select
     wgp.team_id,
@@ -75,7 +76,7 @@ numbered_posts_string as (
   group by wgp.team_id, wgp.sentiment_category, wgp.feedback_start_date, wgp.feedback_end_date
 ),
 
--- Final Select: Fetch the combined feedback, detailed summary, and open-ended question for each sentiment category and feedback week
+-- Final Select: Fetch the combined feedback, detailed summary, and open-ended question for each sentiment category, team_id, and feedback week
 final_combined as (
   select
     cf.team_id,
@@ -121,5 +122,5 @@ select
 from final_combined
 
 {% if is_incremental() %}
-  where final_combined.feedback_end_date > (select max(feedback_end_date) from {{ this }})
+  where final_combined.feedback_start_date > (select max(feedback_start_date) from {{ this }})
 {% endif %}
