@@ -2,7 +2,8 @@ require('dotenv').config();
 const { App, ExpressReceiver } = require('@slack/bolt');
 const express = require('express');
 const bodyParser = require('body-parser');
-const { establishSnowflakeConnection, getTokensFromSnowflake, updateTokensInSnowflake } = require('./database');
+const { establishSnowflakeConnection, getTokensFromSnowflake, saveInitialTokensInSnowflake } = require('./database');
+const { ensureTokensMatchAndRefresh } = require('./tokenManager'); // Import ensureTokensMatchAndRefresh from tokenManager.js
 const { setupMiddleware } = require('./middleware');
 const registerCommands = require('./commands');
 const registerEvents = require('./events');
@@ -10,10 +11,13 @@ const oauthRouter = require('./oauth');
 
 console.log('Starting app.js...');
 
-establishSnowflakeConnection();
-
 (async () => {
   try {
+    await establishSnowflakeConnection();
+
+    // Ensure tokens match and access token is refreshed
+    await ensureTokensMatchAndRefresh();
+
     const receiver = new ExpressReceiver({
       signingSecret: process.env.SIGNING_SECRET,
       clientId: process.env.CLIENT_ID,
@@ -24,14 +28,7 @@ establishSnowflakeConnection();
           console.log('Storing installation tokens in Snowflake...');
           const accessToken = installation.bot.token;
           const refreshToken = installation.bot.refresh_token;
-        
-          // Fetch existing tokens
-          const existingTokens = await getTokensFromSnowflake();
-        
-          // Keep the existing refresh token if present
-          const currentRefreshToken = existingTokens.REFRESH_TOKEN || refreshToken;
-        
-          await updateTokensInSnowflake(accessToken, currentRefreshToken);
+          await saveInitialTokensInSnowflake(accessToken, refreshToken);
           console.log('Stored installation tokens in Snowflake');
         },
         fetchInstallation: async (installQuery) => {
@@ -61,8 +58,7 @@ establishSnowflakeConnection();
     expressApp.use(bodyParser.json());
 
     expressApp.use('/slack/actions', receiver.app);
-
-    expressApp.use('/oauth', oauthRouter); // Add this line to use the oauth router
+    expressApp.use('/oauth', oauthRouter);
 
     registerCommands(receiver, app);
     registerEvents(app);

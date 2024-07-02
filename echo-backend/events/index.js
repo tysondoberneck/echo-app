@@ -1,11 +1,10 @@
 const { getTokensFromSnowflake } = require('../database');
-const { isAccessTokenExpired, refreshAccessToken } = require('../slack');
+const { isAccessTokenExpired, refreshAccessToken, initiateOAuthFlow } = require('../slack');
 const { storeRawEventInSnowflake } = require('../snowflake/events');
-const { format } = require('date-fns'); // Import date-fns for date formatting
+const { format } = require('date-fns');
 
-// Helper function to get the current date and time as a formatted string
 function getCurrentDateTime() {
-  return format(new Date(), 'MM-dd-yyyy hh:mma'); // Format date as 'MM-dd-yyyy hh:mma'
+  return format(new Date(), 'MM-dd-yyyy hh:mma');
 }
 
 module.exports = function(app) {
@@ -32,14 +31,16 @@ module.exports = function(app) {
 
       const updatedTokens = await getTokensFromSnowflake();
 
-      await storeRawEventInSnowflake(event); // Use the imported function here
+      await storeRawEventInSnowflake(event); 
       console.log(`[${getCurrentDateTime()}] Event saved to Snowflake`);
     } catch (error) {
       console.error(`[${getCurrentDateTime()}] Error handling message event:`, error);
+      if (error.message === 'invalid_refresh_token') {
+        await initiateOAuthFlow();
+      }
     }
   });
 
-  // Add listeners for reaction events
   app.event('reaction_added', async ({ event }) => {
     const timestamp = new Date(event.ts * 1000);
     const formattedTimestamp = format(timestamp, 'MM-dd-yyyy hh:mma');

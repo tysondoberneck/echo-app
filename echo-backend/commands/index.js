@@ -8,6 +8,25 @@ function getCurrentDateTime() {
   return format(new Date(), 'MM-dd-yyyy hh:mma'); // Format date as 'MM-dd-yyyy hh:mma'
 }
 
+// Helper function to get the ID of the 'your-voice' channel
+async function getYourVoiceChannelId(app, token, teamId) {
+  try {
+    const result = await app.client.conversations.list({
+      token,
+      team_id: teamId,
+    });
+
+    const channel = result.channels.find(c => c.name === 'your-voice');
+    if (!channel) {
+      throw new Error(`'your-voice' channel not found for team ${teamId}`);
+    }
+    return channel.id;
+  } catch (error) {
+    console.error(`[${getCurrentDateTime()}] Error fetching 'your-voice' channel ID:`, error);
+    throw error;
+  }
+}
+
 module.exports = function(receiver, app) {
   receiver.router.post('/commands/echo', async (req, res) => {
     console.log(`[${getCurrentDateTime()}] Received /echo command:`, req.body);
@@ -94,15 +113,17 @@ module.exports = function(receiver, app) {
         }
       } else if (payload.type === 'view_submission' && payload.view.callback_id === 'summary_modal') {
         const sentimentCategory = payload.view.state.values.sentiment_category_block.sentiment_category.selected_option.value;
-        const initialChannelId = payload.view.private_metadata.split(',')[0]; // Retrieve channel_id from private_metadata
-        const teamId = payload.view.private_metadata.split(',')[1]; // Retrieve team_id from private_metadata
+        const userId = payload.user.id;
 
         // Log the initialChannelId and teamId to verify they are being set correctly
-        console.log(`[${getCurrentDateTime()}] Initial Channel ID:`, initialChannelId);
-        console.log(`[${getCurrentDateTime()}] Team ID:`, teamId);
+        console.log(`[${getCurrentDateTime()}] Team ID:`, payload.team.id);
 
         try {
-          const summary = await fetchSummaryFromSnowflake(sentimentCategory, teamId);
+          // Fetch the 'your-voice' channel ID dynamically
+          const yourVoiceChannelId = await getYourVoiceChannelId(app, updatedTokens.ACCESS_TOKEN, payload.team.id);
+          console.log(`[${getCurrentDateTime()}] Your-Voice Channel ID:`, yourVoiceChannelId);
+
+          const summary = await fetchSummaryFromSnowflake(sentimentCategory, payload.team.id);
 
           // Format the date range
           const formattedStartDate = format(new Date(summary.FEEDBACK_START_DATE), 'MMM dd');
@@ -113,8 +134,8 @@ module.exports = function(receiver, app) {
           // Post the message to the 'your-voice' channel, visible only to the user
           await app.client.chat.postEphemeral({
             token: updatedTokens.ACCESS_TOKEN,
-            channel: initialChannelId, // Use the channel_id from the initial command
-            user: payload.user.id,
+            channel: yourVoiceChannelId, // Use the dynamically fetched channel_id for your-voice
+            user: userId,
             text: message,
           });
 
@@ -123,8 +144,8 @@ module.exports = function(receiver, app) {
           console.error(`[${getCurrentDateTime()}] Error fetching summary:`, error);
           await app.client.chat.postEphemeral({
             token: updatedTokens.ACCESS_TOKEN,
-            channel: initialChannelId, // Use the channel_id from the initial command
-            user: payload.user.id,
+            channel: yourVoiceChannelId, // Use the dynamically fetched channel_id for your-voice
+            user: userId,
             text: 'Failed to fetch the summary. Please try again later.',
           });
         }

@@ -43,14 +43,12 @@ async function getTokensFromSnowflake() {
   });
 }
 
-async function updateTokensInSnowflake(accessToken) {
-  return new Promise((resolve, reject) => {
+async function updateAccessTokenInSnowflake(accessToken) {
+  return new Promise(async (resolve, reject) => {
     const query = `
-      MERGE INTO ECHO_DB.ECHO_SCHEMA.tokens AS target
-      USING (SELECT 'slack' AS id, ? AS access_token) AS source
-      ON target.id = source.id
-      WHEN MATCHED THEN UPDATE SET target.access_token = source.access_token
-      WHEN NOT MATCHED THEN INSERT (id, access_token, refresh_token) VALUES (source.id, source.access_token, target.refresh_token);
+      UPDATE ECHO_DB.ECHO_SCHEMA.tokens
+      SET access_token = ?
+      WHERE id = 'slack';
     `;
 
     snowflakeConnection.execute({
@@ -58,7 +56,53 @@ async function updateTokensInSnowflake(accessToken) {
       binds: [accessToken],
       complete: (err, stmt, rows) => {
         if (err) {
-          reject('Error updating tokens in Snowflake: ' + err);
+          reject('Error updating access token in Snowflake: ' + err);
+        } else {
+          resolve();
+        }
+      }
+    });
+  });
+}
+
+async function saveInitialTokensInSnowflake(accessToken, refreshToken) {
+  return new Promise((resolve, reject) => {
+    const query = `
+      MERGE INTO ECHO_DB.ECHO_SCHEMA.tokens AS target
+      USING (SELECT 'slack' AS id, ? AS access_token, ? AS refresh_token) AS source
+      ON target.id = source.id
+      WHEN MATCHED THEN UPDATE SET target.access_token = source.access_token
+      WHEN NOT MATCHED THEN INSERT (id, access_token, refresh_token) VALUES (source.id, source.access_token, source.refresh_token);
+    `;
+
+    snowflakeConnection.execute({
+      sqlText: query,
+      binds: [accessToken, refreshToken],
+      complete: (err, stmt, rows) => {
+        if (err) {
+          reject('Error saving tokens in Snowflake: ' + err);
+        } else {
+          resolve();
+        }
+      }
+    });
+  });
+}
+
+async function updateRefreshTokenInSnowflake(refreshToken) {
+  return new Promise((resolve, reject) => {
+    const query = `
+      UPDATE ECHO_DB.ECHO_SCHEMA.tokens
+      SET refresh_token = ?
+      WHERE id = 'slack';
+    `;
+
+    snowflakeConnection.execute({
+      sqlText: query,
+      binds: [refreshToken],
+      complete: (err, stmt, rows) => {
+        if (err) {
+          reject('Error updating refresh token in Snowflake: ' + err);
         } else {
           resolve();
         }
@@ -97,6 +141,8 @@ async function fetchSummaryFromSnowflake(sentimentCategory, teamId) {
 module.exports = {
   establishSnowflakeConnection,
   getTokensFromSnowflake,
-  updateTokensInSnowflake,
+  updateAccessTokenInSnowflake,
+  saveInitialTokensInSnowflake,
+  updateRefreshTokenInSnowflake,
   fetchSummaryFromSnowflake, // Export the new function
 };
