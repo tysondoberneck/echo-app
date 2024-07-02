@@ -17,7 +17,7 @@ async function isAccessTokenExpired(accessToken) {
 }
 
 async function initiateOAuthFlow() {
-  const scopes = process.env.SLACK_SCOPES || 'channels:history,channels:read,chat:write,chat:write.public,commands,groups:history,groups:read,im:history,im:write,incoming-webhook,reactions:read,triggers:write,users:read';
+  const scopes = process.env.SLACK_SCOPES || 'channels:history,channels:read,chat:write,commands,groups:history,groups:read,im:history,im:write,incoming-webhook,reactions:read,triggers:write,users:read';
   const oauthUrl = `https://slack.com/oauth/v2/authorize?client_id=${process.env.CLIENT_ID}&scope=${scopes}&redirect_uri=${process.env.REDIRECT_URI}`;
   console.log('Please authorize the app by visiting this URL:', oauthUrl);
 }

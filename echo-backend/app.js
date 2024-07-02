@@ -1,6 +1,5 @@
 require('dotenv').config();
 const { App, ExpressReceiver } = require('@slack/bolt');
-const express = require('express');
 const bodyParser = require('body-parser');
 const { establishSnowflakeConnection, getTokensFromSnowflake, saveInitialTokensInSnowflake } = require('./database');
 const { ensureTokensMatchAndRefresh } = require('./tokenManager'); // Import ensureTokensMatchAndRefresh from tokenManager.js
@@ -14,9 +13,11 @@ console.log('Starting app.js...');
 (async () => {
   try {
     await establishSnowflakeConnection();
+    console.log('Successfully connected to Snowflake.');
 
     // Ensure tokens match and access token is refreshed
     await ensureTokensMatchAndRefresh();
+    console.log('Tokens matched and access token refreshed.');
 
     const receiver = new ExpressReceiver({
       signingSecret: process.env.SIGNING_SECRET,
@@ -29,7 +30,7 @@ console.log('Starting app.js...');
           const accessToken = installation.bot.token;
           const refreshToken = installation.bot.refresh_token;
           await saveInitialTokensInSnowflake(accessToken, refreshToken);
-          console.log('Stored installation tokens in Snowflake');
+          console.log('Stored installation tokens in Snowflake.');
         },
         fetchInstallation: async (installQuery) => {
           const tokens = await getTokensFromSnowflake();
@@ -48,28 +49,28 @@ console.log('Starting app.js...');
     });
 
     setupMiddleware(receiver);
+    console.log('Middleware set up.');
 
     const app = new App({
       receiver,
     });
 
-    const expressApp = express();
+    // Register Slack app commands and events
+    registerCommands(receiver, app);
+    registerEvents(app);
+    console.log('Commands and events registered.');
+
+    // Use receiver's Express app for additional routes
+    const expressApp = receiver.app;
     expressApp.use(bodyParser.urlencoded({ extended: true }));
     expressApp.use(bodyParser.json());
 
-    expressApp.use('/slack/actions', receiver.app);
     expressApp.use('/oauth', oauthRouter);
-
-    registerCommands(receiver, app);
-    registerEvents(app);
+    console.log('OAuth router set up at /oauth.');
 
     await app.start(process.env.PORT || 80);
     console.log('⚡️ Bolt app is running!');
-
-    expressApp.listen(3000, () => {
-      console.log('Express app listening on port 3000');
-    });
-
+    
   } catch (error) {
     console.error('Error starting Bolt app:', error);
   }

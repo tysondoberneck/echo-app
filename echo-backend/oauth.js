@@ -1,10 +1,11 @@
 const express = require('express');
 const axios = require('axios');
-const { updateTokensInSnowflake } = require('./database');
+const { updateAccessTokenInSnowflake } = require('./database'); // Ensure this is correctly imported
 
 const router = express.Router();
 
 router.get('/callback', async (req, res) => {
+  console.log('Received OAuth callback');
   const { code } = req.query;
 
   if (!code) {
@@ -24,11 +25,16 @@ router.get('/callback', async (req, res) => {
 
     if (response.data.ok) {
       const { access_token, refresh_token, bot_user_id } = response.data;
+      console.log(`OAuth authorization successful! Access Token: ${access_token}, Refresh Token: ${refresh_token}, Bot User ID: ${bot_user_id}`);
 
-      // Update tokens in Snowflake
-      await updateTokensInSnowflake(access_token, refresh_token);
-
-      res.send('OAuth authorization successful!');
+      // Update the access token in Snowflake
+      try {
+        await updateAccessTokenInSnowflake(access_token);
+        res.send('OAuth authorization successful!');
+      } catch (dbError) {
+        console.error('Error updating access token in Snowflake:', dbError);
+        res.status(500).send('OAuth authorization failed due to database error.');
+      }
     } else {
       console.error('OAuth Access Error:', response.data.error);
       res.status(500).send(`OAuth authorization failed: ${response.data.error}`);
