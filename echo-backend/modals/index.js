@@ -3,11 +3,11 @@
 const { openFeedbackModal } = require('./feedbackModal');
 const { openSummaryModal } = require('./summaryModal');
 const { openIntroModal } = require('./introModal');
-const { openDirectFeedbackModal } = require('./directFeedbackModal'); // Import the new modal
+const { openDirectFeedbackModal } = require('./directFeedbackModal');
 
 module.exports = {
   openFeedbackModal,
   openSummaryModal,
   openIntroModal,
-  openDirectFeedbackModal, // Export the new modal
+  openDirectFeedbackModal,
 };

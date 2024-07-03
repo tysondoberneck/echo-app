@@ -1,10 +1,10 @@
-// app.js
+// echo-backend/app.js
 
 require('dotenv').config();
 const { App, ExpressReceiver } = require('@slack/bolt');
 const bodyParser = require('body-parser');
 const { establishSnowflakeConnection, getTokensFromSnowflake, saveInitialTokensInSnowflake } = require('./database');
-const { ensureTokensMatchAndRefresh } = require('./tokenManager'); // Import ensureTokensMatchAndRefresh from tokenManager.js
+const { ensureTokensMatchAndRefresh } = require('./tokenManager');
 const { setupMiddleware } = require('./middleware');
 const registerCommands = require('./commands');
 const registerEvents = require('./events');
@@ -17,7 +17,6 @@ console.log('Starting app.js...');
     await establishSnowflakeConnection();
     console.log('Successfully connected to Snowflake.');
 
-    // Ensure tokens match and access token is refreshed
     await ensureTokensMatchAndRefresh();
     console.log('Tokens matched and access token refreshed.');
 
