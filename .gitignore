@@ -4,3 +4,6 @@ snowflake.log
 dbt_venv
 dbt.log
 README.md
+target/
+dbt_packages/
+logs/

@@ -1,11 +1,15 @@
-# Echo App
+Welcome to your new dbt project!
 
-The Echo App is a Slack application designed to facilitate anonymous feedback collection and sentiment analysis and summarization within a Slack workspace. It leverages Snowflake for data storage and analysis, providing summarized feedback to users and management.
+### Using the starter project
 
-## Features
+Try running the following commands:
+- dbt run
+- dbt test
 
-- Collects anonymous feedback from users.
-- Analyzes sentiment of the feedback.
-- Summarizes feedback weekly.
-- Provides an option to view positive or negative feedback summaries.
-- Supports shortcuts for quick access to summaries.
+
+### Resources:
+- Learn more about dbt [in the docs](https://docs.getdbt.com/docs/introduction)
+- Check out [Discourse](https://discourse.getdbt.com/) for commonly asked questions and answers
+- Join the [chat](https://community.getdbt.com/) on Slack for live discussions and support
+- Find [dbt events](https://events.getdbt.com) near you
+- Check out [the blog](https://blog.getdbt.com/) for the latest news on dbt's development and best practices
