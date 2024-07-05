@@ -1,6 +1,6 @@
-version: 2
-
 name: 'dbt_echo'
+
+config-version: 2
 version: '1.0.0'
 
 profile: 'dbt_echo'
