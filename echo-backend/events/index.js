@@ -1,3 +1,4 @@
+const logger = require('../logger');
 const { storeRawEventInSnowflake, deleteEventFromSnowflake, deleteReactionEventFromSnowflake } = require('../snowflake/events');
 const { format } = require('date-fns');
 
@@ -12,108 +13,132 @@ function isValidTimestamp(ts) {
 
 module.exports = function(app) {
   app.event('message', async ({ event }) => {
-    const timestamp = new Date(event.ts * 1000);
-    const formattedTimestamp = format(timestamp, 'MM-dd-yyyy hh:mma');
+    const timestamp = new Date(event.ts * 1000).toISOString();
 
-    console.log(`[${getCurrentDateTime()}] Received message event:`, {
+    const logMessage = `Received message event: ${JSON.stringify({
       user: event.user,
       type: event.type,
       subtype: event.subtype,
-      timestamp: formattedTimestamp,
+      timestamp: timestamp,
       text: event.text,
       team: event.team,
       channel: event.channel,
       event_ts: event.ts,
       channel_type: event.channel_type
-    });
+    })}`;
+    
+    console.log(logMessage);
+    logger.info(logMessage);
 
     try {
       if (event.subtype === 'message_deleted') {
-        console.log(`[${getCurrentDateTime()}] Detected message_deleted subtype`);
+        console.log('Detected message_deleted subtype');
+        logger.info('Detected message_deleted subtype');
         await deleteEventFromSnowflake(event.previous_message.ts);
-        console.log(`[${getCurrentDateTime()}] Deleted message event removed from Snowflake`);
+        console.log('Deleted message event removed from Snowflake');
+        logger.info('Deleted message event removed from Snowflake');
       } else {
         await storeRawEventInSnowflake(event); 
-        console.log(`[${getCurrentDateTime()}] Event saved to Snowflake`);
+        console.log('Event saved to Snowflake');
+        logger.info('Event saved to Snowflake');
       }
     } catch (error) {
-      console.error(`[${getCurrentDateTime()}] Error handling message event:`, error);
+      console.error(`Error handling message event: ${error}`);
+      logger.error(`Error handling message event: ${error}`);
     }
   });
 
   app.event('reaction_added', async ({ event }) => {
-    console.log(`[${getCurrentDateTime()}] Received reaction_added event with timestamps:`, {
+    const logMessage = `Received reaction_added event with timestamps: ${JSON.stringify({
       item_ts: event.item.ts,
       event_ts: event.event_ts
-    });
+    })}`;
+
+    console.log(logMessage);
+    logger.info(logMessage);
 
     if (!isValidTimestamp(event.item.ts) || !isValidTimestamp(event.event_ts)) {
-      console.error(`[${getCurrentDateTime()}] Invalid timestamp for reaction_added event:`, event);
+      const errorMessage = `Invalid timestamp for reaction_added event: ${JSON.stringify(event)}`;
+      console.error(errorMessage);
+      logger.error(errorMessage);
       return;
     }
 
     try {
-      const itemTimestamp = new Date(parseFloat(event.item.ts) * 1000);
-      const formattedItemTimestamp = format(itemTimestamp, 'MM-dd-yyyy hh:mma');
+      const itemTimestamp = new Date(parseFloat(event.item.ts) * 1000).toISOString();
+      const formattedItemTimestamp = `Formatted item timestamp: ${itemTimestamp}`;
+      console.log(formattedItemTimestamp);
+      logger.info(formattedItemTimestamp);
 
-      console.log(`[${getCurrentDateTime()}] Formatted item timestamp: ${formattedItemTimestamp}`);
+      const eventTimestamp = new Date(parseFloat(event.event_ts) * 1000).toISOString();
+      const formattedEventTimestamp = `Formatted event timestamp: ${eventTimestamp}`;
+      console.log(formattedEventTimestamp);
+      logger.info(formattedEventTimestamp);
 
-      const eventTimestamp = new Date(parseFloat(event.event_ts) * 1000);
-      const formattedEventTimestamp = format(eventTimestamp, 'MM-dd-yyyy hh:mma');
-
-      console.log(`[${getCurrentDateTime()}] Formatted event timestamp: ${formattedEventTimestamp}`);
-
-      console.log(`[${getCurrentDateTime()}] Received reaction_added event:`, {
+      const reactionAddedMessage = `Received reaction_added event: ${JSON.stringify({
         user: event.user,
         type: event.type,
-        timestamp: formattedEventTimestamp,
+        timestamp: eventTimestamp,
         reaction: event.reaction,
         item: event.item,
         event_ts: event.event_ts
-      });
+      })}`;
+      console.log(reactionAddedMessage);
+      logger.info(reactionAddedMessage);
 
       await storeRawEventInSnowflake(event);
-      console.log(`[${getCurrentDateTime()}] Reaction added event saved to Snowflake`);
+      console.log('Reaction added event saved to Snowflake');
+      logger.info('Reaction added event saved to Snowflake');
     } catch (error) {
-      console.error(`[${getCurrentDateTime()}] Error handling reaction_added event:`, error);
+      console.error(`Error handling reaction_added event: ${error}`);
+      logger.error(`Error handling reaction_added event: ${error}`);
     }
   });
 
   app.event('reaction_removed', async ({ event }) => {
-    console.log(`[${getCurrentDateTime()}] Received reaction_removed event with timestamps:`, {
+    const logMessage = `Received reaction_removed event with timestamps: ${JSON.stringify({
       item_ts: event.item.ts,
       event_ts: event.event_ts
-    });
+    })}`;
+
+    console.log(logMessage);
+    logger.info(logMessage);
 
     if (!isValidTimestamp(event.item.ts) || !isValidTimestamp(event.event_ts)) {
-      console.error(`[${getCurrentDateTime()}] Invalid timestamp for reaction_removed event:`, event);
+      const errorMessage = `Invalid timestamp for reaction_removed event: ${JSON.stringify(event)}`;
+      console.error(errorMessage);
+      logger.error(errorMessage);
       return;
     }
 
     try {
-      const itemTimestamp = new Date(parseFloat(event.item.ts) * 1000);
-      const formattedItemTimestamp = format(itemTimestamp, 'MM-dd-yyyy hh:mma');
+      const itemTimestamp = new Date(parseFloat(event.item.ts) * 1000).toISOString();
+      const formattedItemTimestamp = `Formatted item timestamp: ${itemTimestamp}`;
+      console.log(formattedItemTimestamp);
+      logger.info(formattedItemTimestamp);
 
-      console.log(`[${getCurrentDateTime()}] Formatted item timestamp: ${formattedItemTimestamp}`);
+      const eventTimestamp = new Date(parseFloat(event.event_ts) * 1000).toISOString();
+      const formattedEventTimestamp = `Formatted event timestamp: ${eventTimestamp}`;
+      console.log(formattedEventTimestamp);
+      logger.info(formattedEventTimestamp);
 
-      const eventTimestamp = new Date(parseFloat(event.event_ts) * 1000);
-      const formattedEventTimestamp = format(eventTimestamp, 'MM-dd-yyyy hh:mma');
-
-      console.log(`[${getCurrentDateTime()}] Formatted event timestamp: ${formattedEventTimestamp}`);
-
-      console.log(`[${getCurrentDateTime()}] Received reaction_removed event:`, {
+      const reactionRemovedMessage = `Received reaction_removed event: ${JSON.stringify({
         user: event.user,
         type: event.type,
-        timestamp: formattedEventTimestamp,
+        timestamp: eventTimestamp,
         reaction: event.reaction,
         item: event.item,
         event_ts: event.event_ts
-      });
+      })}`;
+      console.log(reactionRemovedMessage);
+      logger.info(reactionRemovedMessage);
 
       await deleteReactionEventFromSnowflake(event.item.ts, event.reaction);
-      console.log(`[${getCurrentDateTime()}] Reaction removed event deleted from Snowflake`);
+      console.log('Reaction removed event deleted from Snowflake');
+      logger.info('Reaction removed event deleted from Snowflake');
     } catch (error) {
-      console.error(`[${getCurrentDateTime()}] Error handling reaction_removed event:`, error);
+      console.error(`Error handling reaction_removed event: ${error}`);
+      logger.error(`Error handling reaction_removed event: ${error}`);
     }
   });
 };
