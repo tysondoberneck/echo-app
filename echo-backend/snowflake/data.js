@@ -8,7 +8,7 @@ async function getSummarizedData() {
       numbered_weighted_posts
       detailed_summary,
       open_ended_question,
-    FROM ECHO_DB.ECHO_SCHEMA.SLACK_POST_SUMMARY;
+    FROM ECHO_DB.FIVETRAN.SLACK_POST_SUMMARY;
   `;
 
   return new Promise((resolve, reject) => {

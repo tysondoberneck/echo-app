@@ -115,7 +115,7 @@ async function fetchSummaryFromSnowflake(sentimentCategory, teamId) {
   return new Promise((resolve, reject) => {
     const query = `
       SELECT DETAILED_SUMMARY, FEEDBACK_START_DATE, FEEDBACK_END_DATE
-      FROM ECHO_DB.ECHO_SCHEMA.slack_post_summary
+      FROM ECHO_DB.FIVETRAN.slack_post_summary
       WHERE sentiment_category = ?
       AND team_id = ?
       ORDER BY feedback_start_date DESC
