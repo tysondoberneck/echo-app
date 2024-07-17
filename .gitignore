@@ -7,3 +7,4 @@ README.md
 target/
 dbt_packages/
 logs/
+app.log
