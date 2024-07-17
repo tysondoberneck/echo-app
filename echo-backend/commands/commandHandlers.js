@@ -7,6 +7,8 @@ const { getCurrentDateTime } = require('../utils/dateUtils');
 
 async function handleEchoCommand(req, res, app) {
   console.log(`[${getCurrentDateTime()}] Received /echo command:`, req.body);
+  logger.info(`[${getCurrentDateTime()}] Received /echo command:`, req.body);
+
   const { trigger_id } = req.body;
 
   try {
@@ -20,6 +22,7 @@ async function handleEchoCommand(req, res, app) {
     res.status(200).send(''); // Immediate response to clear the command text
   } catch (error) {
     console.error(`[${getCurrentDateTime()}] Error handling /echo command:`, error);
+    logger.info(`[${getCurrentDateTime()}] Error handling /echo command:`, error);
     res.status(500).send('Internal Server Error');
   }
 }

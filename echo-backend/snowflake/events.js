@@ -26,8 +26,11 @@ async function storeRawEventInSnowflake(event) {
       });
     });
     console.log('Successfully inserted event');
+    logger.info('Successfully inserted event');
+
   } catch (error) {
     console.error('Error storing event in Snowflake:', error);
+    logger.error('Error storing event in Snowflake:', error);
   }
 }
 
@@ -54,8 +57,11 @@ async function deleteEventFromSnowflake(eventTs) {
       });
     });
     console.log('Successfully deleted event');
+    logger.info('Successfully deleted event');
+
   } catch (error) {
     console.error('Error deleting event from Snowflake:', error);
+    logger.error('Error deleting event from Snowflake:', error);
   }
 }
 
@@ -82,8 +88,11 @@ async function deleteReactionEventFromSnowflake(itemTs, reaction) {
       });
     });
     console.log('Successfully deleted reaction event');
+    logger.info('Successfully deleted reaction event');
+
   } catch (error) {
     console.error('Error deleting reaction event from Snowflake:', error);
+    logger.error('Error deleting reaction event from Snowflake:', error);
   }
 }
 
