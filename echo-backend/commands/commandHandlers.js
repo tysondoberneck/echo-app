@@ -1,5 +1,6 @@
 // echo-backend/commands/commandHandlers.js
 
+const logger = require('../logger');
 const { getTokensFromSnowflake } = require('../database');
 const { isAccessTokenExpired, refreshAccessToken } = require('../slack');
 const { openIntroModal } = require('../modals');

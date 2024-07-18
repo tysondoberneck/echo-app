@@ -1,4 +1,5 @@
 const connection = require('./connection');
+const logger = require('../logger');
 
 async function storeRawEventInSnowflake(event) {
   try {

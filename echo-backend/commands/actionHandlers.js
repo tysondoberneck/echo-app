@@ -1,10 +1,9 @@
-// echo-backend/commands/actionHandlers.js
-
 const { getTokensFromSnowflake, fetchSummaryFromSnowflake } = require('../database');
 const { isAccessTokenExpired, refreshAccessToken } = require('../slack');
 const { openFeedbackModal, openSummaryModal, openDirectFeedbackModal } = require('../modals');
 const { getCurrentDateTime } = require('../utils/dateUtils');
 const { getYourVoiceChannelId } = require('../utils/slackUtils');
+const { format } = require('date-fns'); // Add this line to import the format function
 
 async function handleSlackActions(req, res, app) {
   console.log(`[${getCurrentDateTime()}] Received action:`, req.body);
@@ -80,7 +79,7 @@ async function handleSlackActions(req, res, app) {
         console.error(`[${getCurrentDateTime()}] Error fetching summary:`, error);
         await app.client.chat.postEphemeral({
           token: updatedTokens.ACCESS_TOKEN,
-          channel: yourVoiceChannelId,
+          channel: payload.user.id,
           user: userId,
           text: 'Failed to fetch the summary. Please try again later.',
         });

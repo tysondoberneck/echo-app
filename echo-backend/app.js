@@ -1,6 +1,7 @@
 // echo-backend/app.js
 
 require('dotenv').config();
+const logger = require('./logger');
 const { App, ExpressReceiver } = require('@slack/bolt');
 const bodyParser = require('body-parser');
 const { establishSnowflakeConnection, getTokensFromSnowflake, saveInitialTokensInSnowflake } = require('./database');
