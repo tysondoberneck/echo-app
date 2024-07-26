@@ -3,6 +3,6 @@ version: 2
 sources:
   - name: echo_source
     database: echo_db
-    schema: echo_schema
+    schema: fivetran
     tables:
       - name: slack_events_raw
