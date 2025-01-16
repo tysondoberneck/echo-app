@@ -21,11 +21,11 @@ filtered_posts as (
   select
     bp.*,
     case 
-      when bp.sentiment_score > 0 then 'positive' 
+      when bp.sentiment_score >= 0.10 then 'positive' 
       else 'negative' 
     end as sentiment_category
   from base_posts bp
-  where bp.sentiment_score <= -0.40 or bp.sentiment_score >= 0.40
+  where bp.sentiment_score <= -0.10 or bp.sentiment_score >= 0.10
 ),
 
 -- Step 3: Number the posts within their sentiment categories and append the weight to the post text
