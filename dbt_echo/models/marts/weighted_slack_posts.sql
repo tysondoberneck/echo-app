@@ -1,9 +1,12 @@
+```sql
+-- Set the materialization type to 'table'
 {{
   config(
     materialized='table'
   )
 }}
 
+-- Extract posts data
 with posts as (
   select
     id,
@@ -35,6 +38,8 @@ with posts as (
     'post' as event_subtype
   from {{ ref('int_slack_posts') }}
 ),
+
+-- Extract replies data
 replies as (
   select
     id,
@@ -52,7 +57,7 @@ replies as (
     event_channel_type,
     event_client_msg_id,
     event_text,
-    cast('message' as varchar) as event_type,  -- Ensure event_type is present
+    cast('message' as varchar) as event_type,
     event_user,
     event_context,
     event_id,
@@ -66,6 +71,8 @@ replies as (
     'reply' as event_subtype
   from {{ ref('int_slack_replies') }}
 ),
+
+-- Extract reactions data
 reactions as (
   select
     id,
@@ -83,7 +90,7 @@ reactions as (
     reaction_item_type as event_channel_type,
     null as event_client_msg_id,
     reaction as event_text,
-    cast('reaction_added' as varchar) as event_type,  -- Ensure event_type is present
+    cast('reaction_added' as varchar) as event_type,
     event_user,
     event_context,
     event_id,
@@ -139,7 +146,7 @@ post_weights as (
     p.event_subtype,
     coalesce(r.num_replies, 0) as num_replies,
     coalesce(re.num_reactions, 0) as num_reactions,
-    1 + coalesce(r.num_replies, 0) * 0.5 + coalesce(re.num_reactions, 0) * 0.1 as weight  -- Calculate weight based on reactions and replies
+    1 + coalesce(r.num_replies, 0) * 0.5 + coalesce(re.num_reactions, 0) * 0.1 as weight
   from posts p
   left join (
     select
@@ -157,4 +164,6 @@ post_weights as (
   ) re on p.thread_id = re.thread_id
 )
 
+-- Output the final post weights
 select * from post_weights
+```
