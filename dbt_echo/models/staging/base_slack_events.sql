@@ -1,65 +1,66 @@
+```sql
 -- models/staging/base_slack_events.sql
 
 {{
   config(
     materialized='incremental',
-    on_schema_change="sync_all_columns",
-    unique_key='ID'
+    on_schema_change='sync_columns',
+    unique_key='id'
   )
 }}
 
-with raw_events as (
-  select
-    "ID" as id,
-    "EVENT_TIME" as event_time,
-    parse_json("RAW_EVENT") as event
-  from {{ source('echo_source', 'slack_events_raw') }}
+WITH raw_events AS (
+  SELECT
+    id,
+    event_time,
+    parse_json(event) AS event
+  FROM {{ source('echo_source', 'slack_events_raw') }}
 )
 
-select
+SELECT
   id,
   event_time,
-  event:api_app_id as api_app_id,
-  event:authorizations[0].enterprise_id as enterprise_id,
-  event:authorizations[0].is_bot as is_bot,
-  event:authorizations[0].is_enterprise_install as is_enterprise_install,
-  event:authorizations[0].team_id as auth_team_id,
-  event:authorizations[0].user_id as auth_user_id,
-  event:context_enterprise_id as context_enterprise_id,
-  event:context_team_id as context_team_id,
-  event:event_ts as event_ts,
-  event:channel as event_channel,
-  event:channel_type as event_channel_type,
-  event:client_msg_id as event_client_msg_id,
-  regexp_replace(cast(event:text as varchar), '^Anonymous feedback: ', '') as event_text, -- Cast and trim prefix if it exists
-  event:type as event_type,
-  event:user as event_user,
-  event:parent_user_id as event_parent_user_id,
-  event:thread_ts as event_thread_ts,
-  event:item.channel as reaction_item_channel,
-  event:item.ts as reaction_item_ts,
-  event:item.type as reaction_item_type,
-  event:item_user as reaction_item_user,
-  event:reaction as reaction,
-  event:event_context as event_context,
-  event:event_id as event_id,
-  event:is_ext_shared_channel as is_ext_shared_channel,
-  event:team as team_id,
-  event:token as token,
-  event:type as type,
-  event:bot_id as bot_id,
-  -- New fields based on updated JSON structure
-  event:blocks as blocks,
-  event:blocks[0].block_id as block_id,
-  event:blocks[0].elements[0].elements[0].text as block_text,
-  event:blocks[0].elements[0].elements[0].type as block_text_type,
-  event:text as anonymous_feedback_text,
-  event:bot_profile.id as bot_profile_id,
-  event:bot_profile.name as bot_profile_name,
-  event:bot_profile.team_id as bot_profile_team_id,
-  event:bot_profile.updated as bot_profile_updated
-from raw_events
+  event:api_app_id AS api_app_id,
+  event:authorizations[0].enterprise_id AS enterprise_id,
+  event:authorizations[0].is_bot AS is_bot,
+  event:authorizations[0].is_enterprise_install AS is_enterprise_install,
+  event:authorizations[0].team_id AS auth_team_id,
+  event:authorizations[0].user_id AS auth_user_id,
+  event:context_enterprise_id AS context_enterprise_id,
+  event:context_team_id AS context_team_id,
+  event:event_ts AS event_ts,
+  event:channel AS event_channel,
+  event:channel_type AS event_channel_type,
+  event:client_msg_id AS event_client_msg_id,
+  regexp_replace(CAST(event:text AS varchar), '^Anonymous feedback: ', '') AS event_text,
+  event:type AS event_type,
+  event:user AS event_user,
+  event:parent_user_id AS event_parent_user_id,
+  event:thread_ts AS event_thread_ts,
+  event:item.channel AS reaction_item_channel,
+  event:item.ts AS reaction_item_ts,
+  event:item.type AS reaction_item_type,
+  event:item_user AS reaction_item_user,
+  event:reaction AS reaction,
+  event:event_context AS event_context,
+  event:event_id AS event_id,
+  event:is_ext_shared_channel AS is_ext_shared_channel,
+  event:team AS team_id,
+  event:token AS token,
+  event:type AS type,
+  event:bot_id AS bot_id,
+  event:blocks AS blocks,
+  event:blocks[0].block_id AS block_id,
+  event:blocks[0].elements[0].elements[0].text AS block_text,
+  event:blocks[0].elements[0].elements[0].type AS block_text_type,
+  event:text AS anonymous_feedback_text,
+  event:bot_profile.id AS bot_profile_id,
+  event:bot_profile.name AS bot_profile_name,
+  event:bot_profile.team_id AS bot_profile_team_id,
+  event:bot_profile.updated AS bot_profile_updated
+FROM raw_events
 
 {% if is_incremental() %}
-  where event_time > (select max(event_time) from {{ this }})
+  WHERE event_time > (SELECT MAX(event_time) FROM {{ this }})
 {% endif %}
+```
