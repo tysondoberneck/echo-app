@@ -1,3 +1,4 @@
+```sql
 {{
   config(
     materialized='incremental',
@@ -10,7 +11,7 @@
 with base_posts as (
   select
     p.*,
-    w.weight  -- Include weight from weighted_slack_posts
+    w.weight as post_weight  -- Renamed weight to post_weight for clarity
   from {{ ref('int_slack_posts') }} p
   join {{ ref('weighted_slack_posts') }} w on p.id = w.post_id
   where p.event_text is not null
@@ -36,7 +37,7 @@ numbered_posts as (
       partition by date_trunc('week', fp.event_time - interval '1 day'), fp.team_id, fp.sentiment_category
       order by fp.event_time
     ) as post_number,
-    concat(fp.event_text, ' (weight: ', fp.weight, ')') as weighted_text
+    concat(fp.event_text, ' (weight: ', fp.post_weight, ')') as weighted_text
   from filtered_posts fp
 ),
 
@@ -124,3 +125,4 @@ from final_combined
 {% if is_incremental() %}
   where final_combined.feedback_start_date > (select max(feedback_start_date) from {{ this }})
 {% endif %}
+```
