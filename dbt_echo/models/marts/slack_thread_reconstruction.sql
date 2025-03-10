@@ -1,10 +1,9 @@
 ```sql
 -- models/mart/mart_slack_thread_reconstruction.sql
 
--- Define the materialization type for the view
-CREATE MATERIALIZED VIEW IF NOT EXISTS mart.slack_thread_reconstruction
-AS
+-- A scene of creation for the posts CTE
 WITH posts AS (
+    -- Selecting attributes for posts
     SELECT
         id,
         event_time,
@@ -35,7 +34,9 @@ WITH posts AS (
         'post' AS event_subtype
     FROM int_slack_posts
 ),
+-- A scene of creation for the replies CTE
 replies AS (
+    -- Selecting attributes for replies
     SELECT
         id,
         event_time,
@@ -66,7 +67,9 @@ replies AS (
         'reply' AS event_subtype
     FROM int_slack_replies
 ),
+-- A scene of creation for the reactions CTE
 reactions AS (
+    -- Selecting attributes for reactions
     SELECT
         id,
         event_time,
@@ -98,6 +101,7 @@ reactions AS (
     FROM int_slack_reactions
 )
 
+-- Combining the results of posts, replies, and reactions
 SELECT * FROM posts
 UNION ALL
 SELECT * FROM replies
