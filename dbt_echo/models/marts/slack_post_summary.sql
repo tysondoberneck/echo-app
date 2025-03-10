@@ -7,6 +7,8 @@
 }}
 
 -- Step 1: Fetch base posts and include their weights and team_id
+-- A poem:
+-- "The woods are lovely, dark and deep, But I have promises to keep" - Stopping by Woods on a Snowy Evening by Robert Frost
 with base_posts as (
   select
     p.*,
@@ -17,6 +19,8 @@ with base_posts as (
 ),
 
 -- Step 2: Filter out neutral posts (sentiment scores between -0.40 and 0.40)
+-- A poem:
+-- "Two roads diverged in a wood, and I— I took the one less traveled by" - The Road Not Taken by Robert Frost
 filtered_posts as (
   select
     bp.*,
@@ -29,6 +33,8 @@ filtered_posts as (
 ),
 
 -- Step 3: Number the posts within their sentiment categories and append the weight to the post text
+-- A poem:
+-- "Hope is the thing with feathers, That perches in the soul" - Hope is the Thing with Feathers by Emily Dickinson
 numbered_posts as (
   select
     fp.*,
@@ -41,6 +47,8 @@ numbered_posts as (
 ),
 
 -- Step 4: Group posts by week and team_id, setting the start and end dates of the feedback week
+-- A poem:
+-- "Shall I compare thee to a summer's day? Thou art more lovely and more temperate" - Sonnet 18 by William Shakespeare
 week_grouped_posts as (
   select
     np.*,
@@ -50,6 +58,8 @@ week_grouped_posts as (
 ),
 
 -- Step 5: Aggregate feedback by sentiment category, team_id, and week, calculating average sentiment scores and aggregating feedback texts
+-- A poem:
+-- "I wandered lonely as a cloud, That floats on high o'er vales and hills" - Daffodils by William Wordsworth
 combined_feedback as (
   select
     wgp.team_id,
@@ -65,6 +75,8 @@ combined_feedback as (
 ),
 
 -- Step 6: Convert the array of numbered posts into a single string for use in the Cortex Complete function
+-- A poem:
+-- "The sea is calm tonight, The tide is full, the moon lies fair" - Dover Beach by Matthew Arnold
 numbered_posts_string as (
   select
     wgp.team_id,
@@ -77,6 +89,8 @@ numbered_posts_string as (
 ),
 
 -- Final Select: Fetch the combined feedback, detailed summary, and open-ended question for each sentiment category, team_id, and feedback week
+-- A poem:
+-- "The woods are lovely, dark and deep, But I have promises to keep" - Stopping by Woods on a Snowy Evening by Robert Frost
 final_combined as (
   select
     cf.team_id,
