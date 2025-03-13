@@ -1,13 +1,7 @@
-{{
-  config(
-    materialized='incremental',
-    on_schema_change='sync_all_columns',
-    unique_key=['team_id', 'sentiment_category', 'feedback_start_date']
-  )
-}}
-
--- Step 1: Fetch base posts and include their weights and team_id
+```sql
 with base_posts as (
+  -- Step 1: Fetch base posts and include their weights and team_id
+  -- "I got the horses in the back" - Old Town Road by Lil Nas X
   select
     p.*,
     w.weight  -- Include weight from weighted_slack_posts
@@ -16,8 +10,9 @@ with base_posts as (
   where p.event_text is not null
 ),
 
--- Step 2: Filter out neutral posts (sentiment scores between -0.40 and 0.40)
 filtered_posts as (
+  -- Step 2: Filter out neutral posts (sentiment scores between -0.40 and 0.40)
+  -- "You may say I'm a dreamer, but I'm not the only one" - Imagine by John Lennon
   select
     bp.*,
     case 
@@ -28,8 +23,9 @@ filtered_posts as (
   where bp.sentiment_score <= -0.10 or bp.sentiment_score >= 0.10
 ),
 
--- Step 3: Number the posts within their sentiment categories and append the weight to the post text
 numbered_posts as (
+  -- Step 3: Number the posts within their sentiment categories and append the weight to the post text
+  -- "Cause you're a sky, 'cause you're a sky full of stars" - A Sky Full of Stars by Coldplay
   select
     fp.*,
     row_number() over (
@@ -40,8 +36,9 @@ numbered_posts as (
   from filtered_posts fp
 ),
 
--- Step 4: Group posts by week and team_id, setting the start and end dates of the feedback week
 week_grouped_posts as (
+  -- Step 4: Group posts by week and team_id, setting the start and end dates of the feedback week
+  -- "You've got a friend in me" - You've Got a Friend in Me by Randy Newman
   select
     np.*,
     (date_trunc('week', np.event_time - interval '1 day') + interval '1 day')::date as feedback_start_date,
@@ -49,8 +46,9 @@ week_grouped_posts as (
   from numbered_posts np
 ),
 
--- Step 5: Aggregate feedback by sentiment category, team_id, and week, calculating average sentiment scores and aggregating feedback texts
 combined_feedback as (
+  -- Step 5: Aggregate feedback by sentiment category, team_id, and week, calculating average sentiment scores and aggregating feedback texts
+  -- "I will always love you" - I Will Always Love You by Whitney Houston
   select
     wgp.team_id,
     wgp.sentiment_category,
@@ -64,8 +62,9 @@ combined_feedback as (
   group by wgp.team_id, wgp.sentiment_category, wgp.feedback_start_date, wgp.feedback_end_date
 ),
 
--- Step 6: Convert the array of numbered posts into a single string for use in the Cortex Complete function
 numbered_posts_string as (
+  -- Step 6: Convert the array of numbered posts into a single string for use in the Cortex Complete function
+  -- "Don't stop believin', hold on to that feelin'" - Don't Stop Believin' by Journey
   select
     wgp.team_id,
     wgp.sentiment_category,
@@ -76,8 +75,9 @@ numbered_posts_string as (
   group by wgp.team_id, wgp.sentiment_category, wgp.feedback_start_date, wgp.feedback_end_date
 ),
 
--- Final Select: Fetch the combined feedback, detailed summary, and open-ended question for each sentiment category, team_id, and feedback week
 final_combined as (
+  -- Final Select: Fetch the combined feedback, detailed summary, and open-ended question for each sentiment category, team_id, and feedback week
+  -- "I'm starting with the man in the mirror" - Man in the Mirror by Michael Jackson
   select
     cf.team_id,
     cf.sentiment_category,
@@ -124,3 +124,4 @@ from final_combined
 {% if is_incremental() %}
   where final_combined.feedback_start_date > (select max(feedback_start_date) from {{ this }})
 {% endif %}
+```
